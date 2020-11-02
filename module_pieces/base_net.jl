@@ -26,11 +26,67 @@ mutable struct Graph
     M::Int
     is_directed::Bool
     vertices::Array{node}
+    edges::Array{Edge}
+    # ---------- Vertex properties ----------- #
+    int_properties::Dict{String, Array{Int}}
+    float_properties::Dict{String, Array{Float64}}
+    string_properties::Dict{String, Array{String}}
+    # ---------------------------------------- #
     function Graph(is_directed::Bool)
         N = 0
         M = 0
         vertices = node[]
-        new(N, M, is_directed, vertices)
+        edges = Edge[]
+        int_properties = Dict{String, Array{Int}}()
+        float_properties = Dict{String, Array{Float64}}()
+        string_properties = Dict{String, Array{String}}()
+        new(N, M, is_directed, vertices, edges, int_properties, 
+            float_properties, string_properties)
+    end
+end
+
+        ##################################################
+        # ---------------------------------------------- #
+######### ------------ Graph Manipulation -------------- ##########
+        # ---------------------------------------------- #
+        ##################################################
+
+
+"""
+    Set a mapping properties for the vertices.
+
+    Depending on the type of the elements of 'arr' the
+    properties are set in different variables.
+
+    'name' -> name of the property.
+    'arr' -> array of typed elements.
+    'graph' -> graph to be assigned with the property.
+
+    If there is already a property with the given 'name',
+    the function will replace the old array with the new
+    one, without any warning.
+"""
+function set_vertex_property(name::String, arr::Array{Int}, graph::Graph)
+    if length(graph.vertices) == length(arr)
+        graph.int_properties[name] = arr
+    else
+        print("size array does not match number of vertices\n")
+    end
+end
+
+function set_vertex_property(name::String, arr::Array{Float64}, graph::Graph)
+    if length(graph.vertices) == length(arr)
+        graph.float_properties[name] = arr
+    else
+        print("size array does not match number of vertices\n")
+    end
+end
+
+function set_vertex_property(name::String, arr::Array{String}, graph::Graph)
+    if length(graph.vertices) == length(arr)
+        graph.string_properties[name] = arr
+    else
+        print("size array does not match number of vertices\n")
     end
 end
 
@@ -63,12 +119,29 @@ function create_graph(adjlist, is_directed::Bool)
     return new_graph
 end
 
-##################################################
-# ---------------------------------------------- #
-# ------------ Graph Manipulation -------------- #
-# ---------------------------------------------- #
-##################################################
+"""
+    Create graph from edgelist.
 
+    edgelist is an array of dimension M x 2 containing
+    the source and target of each edge.
+
+    The function assumes that the vertices are labeled
+    from 1 to N.
+"""
+function new_graph_from_edgelist(edgelist::Array{Int, 2}, is_directed::Bool)
+    g = Graph(is_directed)
+    N = maximum([maximum(edgelist[:,1]), maximum(edgelist[:,2])])
+
+    # -- Create the vertices --
+    for j in 1:N
+        add_node(g)
+    end
+    # -- Then, build the connections
+    for j in 1:length(edgelist[:,1])
+        add_edge(edgelist[j,1], edgelist[j,2], g)
+    end
+    return g
+end
 
 """
     Check if the edge(i,j) already exists in the network.
@@ -136,8 +209,13 @@ function add_edge(i, j, graph::Graph)
     new_edge = Edge(node_i.index, node_j.index, is_directed)
     append!(node_i.edges_source, [new_edge])
     append!(node_j.edges_target, [new_edge])
+    append!(graph.edges, [new_edge])
 end
 
+"""
+    If the network is directed, returns outcoming neighbors.
+    Otherwise, returns all neighbors.
+"""
 function get_all_neighbors_aware(v_index::Int, graph::Graph)
     node_v = graph.vertices[v_index]
     neighbors = Int[]
@@ -218,32 +296,34 @@ function printGraph(graph::Graph)
 end
 
 """
-    Breadth-First Search, starting from node of index 'v_index'.
+    Given a formatted edgelist file, it returns two objects: a N x 2
+    array containing the edgelist with format [[src,tgt], ...] and 
+    a array of string arrays containing all the other columns in the file.
+
+    Example:
+    file -> "1 2 prop1 prop2
+             2 3 prop1 prop2
+             ... ..... ....."
+
+    returns ->
+    [1 2; 2 3; ...] and [["prop1", "prop2"], ["prop1", "prop2"], ...]
 """
-function BFS(v_index::Int, graph::Graph)
-    stack = Int[]
-    visited = Int[ 0 for i in 1:length(graph.vertices) ]
-    append!(stack, get_all_neighbors(v_index, graph))
-    visited[v_index] = 1 
+function process_edgefile(fname::String)
+    src_tgt = Array{Int}[]
+    edge_prop = Array{String}[]
     
-    while length(stack)!=0
-        v = pop!(stack)
-        if visited[v]==0
-            append!(stack, get_all_neighbors(v, graph))
-            visited[v] = 1        
+    open(fname, "r") do f
+        for line in eachline(f)
+            line_elem = split(line)
+            elem1 = Int[parse(Int, line_elem[1]), parse(Int, line_elem[2])]
+
+            append!(src_tgt, [elem1])
+            append!(edge_prop, [line_elem[3:length(line_elem)]])
         end
     end
-    return Int[ j for (j, value) in enumerate(visited) ]
+
+    edges = copy(transpose(reduce(hcat, src_tgt)))
+    return edges, edge_prop
 end
-
-#adjlist_ex = [[2,3], [1], [2]]
-#net = create_graph(adjlist_ex, false)
-#printGraph(net)
-#print("\n")
-#print(BFS(1, net))
-
-
-
-
 
 

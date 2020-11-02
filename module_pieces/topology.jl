@@ -1,10 +1,10 @@
 #=
-    This code must be inserted together with 'build_net.jl'.
+    This code must be inserted together with 'base_net.jl'.
 =#
 
 """
     Two-pass algorithm. Intuitive. Demands a great 
-    deal of memory.
+    deal of memory. Kosajaru's algorithm.
 """
 function extract_scc(graph::Graph)
     sets = Array[]
