@@ -3,6 +3,27 @@
 =#
 
 """
+    Returns an array containing the degree for each vertex
+    in the given graph.
+
+    mode -> {'total', 'in', 'out'}
+"""
+function get_degree(graph::Graph, mode::String)
+    degree = zeros(Int, length(graph.vertices))
+    for j in 1:length(graph.vertices)
+        vertex = graph.vertices[j]
+        if mode=="total"
+            degree[j] = length(vertex.edges_source) + length(vertex.edges_target)
+        elseif mode=="in"
+            degree[j] = length(vertex.edges_target)
+        elseif mode=="out"
+            degree[j] = length(vertex.edges_source)
+        end
+    end
+    return degree
+end
+
+"""
     Two-pass algorithm. Intuitive. Demands a great 
     deal of memory. Kosajaru's algorithm.
 """

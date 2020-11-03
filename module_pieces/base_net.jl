@@ -28,29 +28,36 @@ mutable struct Graph
     vertices::Array{node}
     edges::Array{Edge}
     # ---------- Vertex properties ----------- #
-    int_properties::Dict{String, Array{Int}}
-    float_properties::Dict{String, Array{Float64}}
-    string_properties::Dict{String, Array{String}}
+    int_vproperties::Dict{String, Array{Int}}
+    float_vproperties::Dict{String, Array{Float64}}
+    string_vproperties::Dict{String, Array{String}}
+    # ----------- Edge properties ------------ #
+    int_eproperties::Dict{String, Array{Int}}
+    float_eproperties::Dict{String, Array{Float64}}
+    string_eproperties::Dict{String, Array{String}}
     # ---------------------------------------- #
     function Graph(is_directed::Bool)
         N = 0
         M = 0
         vertices = node[]
         edges = Edge[]
-        int_properties = Dict{String, Array{Int}}()
-        float_properties = Dict{String, Array{Float64}}()
-        string_properties = Dict{String, Array{String}}()
-        new(N, M, is_directed, vertices, edges, int_properties, 
-            float_properties, string_properties)
+        int_vproperties = Dict{String, Array{Int}}()
+        float_vproperties = Dict{String, Array{Float64}}()
+        string_vproperties = Dict{String, Array{String}}()
+        int_eproperties = Dict{String, Array{Int}}()
+        float_eproperties = Dict{String, Array{Float64}}()
+        string_eproperties = Dict{String, Array{String}}()
+        new(N, M, is_directed, vertices, edges, int_vproperties, 
+            float_vproperties, string_vproperties, int_eproperties,
+            float_eproperties, string_eproperties)
     end
 end
 
         ##################################################
         # ---------------------------------------------- #
-######### ------------ Graph Manipulation -------------- ##########
+######### ------------- Graph Properties --------------- ##########
         # ---------------------------------------------- #
         ##################################################
-
 
 """
     Set a mapping properties for the vertices.
@@ -66,29 +73,73 @@ end
     the function will replace the old array with the new
     one, without any warning.
 """
-function set_vertex_property(name::String, arr::Array{Int}, graph::Graph)
+function set_vertices_properties(name::String, arr::Array{Int}, graph::Graph)
     if length(graph.vertices) == length(arr)
-        graph.int_properties[name] = arr
+        graph.int_vproperties[name] = arr
     else
         print("size array does not match number of vertices\n")
     end
 end
 
-function set_vertex_property(name::String, arr::Array{Float64}, graph::Graph)
+function set_vertices_properties(name::String, arr::Array{Float64}, graph::Graph)
     if length(graph.vertices) == length(arr)
-        graph.float_properties[name] = arr
+        graph.float_vproperties[name] = arr
     else
         print("size array does not match number of vertices\n")
     end
 end
 
-function set_vertex_property(name::String, arr::Array{String}, graph::Graph)
+function set_vertices_properties(name::String, arr::Array{String}, graph::Graph)
     if length(graph.vertices) == length(arr)
-        graph.string_properties[name] = arr
+        graph.string_vproperties[name] = arr
     else
         print("size array does not match number of vertices\n")
     end
 end
+
+"""
+    Set a mapping properties for the edges.
+
+    Depending on the type of the elements of 'arr' the
+    properties are set in different variables.
+        
+    'name' -> name of the property.
+    'arr' -> array of typed elements.
+    'graph' -> graph to be assigned with the property.
+
+    If there is already a property with the given 'name',
+    the function will replace the old array with the new
+    one, without any warning.
+"""
+function set_edges_properties(name::String, arr::Array{Int}, graph::Graph)
+    if length(graph.edges) == length(arr)
+        graph.int_eproperties[name] = arr
+    else
+        print("size array does not match number of edges\n")
+    end
+end
+
+function set_edges_properties(name::String, arr::Array{Float64}, graph::Graph)
+    if length(graph.edges) == length(arr)
+        graph.float_eproperties[name] = arr
+    else
+        print("size array does not match number of edges\n")
+    end
+end
+
+function set_edges_properties(name::String, arr::Array{String}, graph::Graph)
+    if length(graph.edges) == length(arr)
+        graph.string_eproperties[name] = arr
+    else
+        print("size array does not match number of edges\n")
+    end
+end
+
+        ##################################################
+        # ---------------------------------------------- #
+######### ------------ Graph Manipulation -------------- ##########
+        # ---------------------------------------------- #
+        ##################################################
 
 """
     Given an adjacency list, we build a network.
@@ -148,7 +199,7 @@ end
     If the network is directed, then we check for i->j, while
     for the undirected, i<->j.
 
-    Time complexity: O(k), where k = max(k_i, k_j).
+    Time complexity: O(k), where k = k_i + k_j.
 """
 function is_edge(i, j, graph::Graph)
     node_i = graph.vertices[i]
@@ -210,6 +261,7 @@ function add_edge(i, j, graph::Graph)
     append!(node_i.edges_source, [new_edge])
     append!(node_j.edges_target, [new_edge])
     append!(graph.edges, [new_edge])
+    graph.M += 1
 end
 
 """
@@ -326,4 +378,24 @@ function process_edgefile(fname::String)
     return edges, edge_prop
 end
 
+"""
 
+"""
+function process_eprops(eprops::Array{Array{String}}, names::Array{String})
+    container = Array{String}[]
+    n_props = length(eprops[1])
+    for j in 1:n_props
+        append!(container, [String[]])
+    end
+    for j in 1:length(eprops)
+        for k in 1:n_props
+            append!(container[k], [eprops[j][k]])
+        end
+    end
+
+    holder = Dict{String, Array{String}}()
+    for (j, name) in enumerate(names)
+        holder[name] = container[j]
+    end
+    return holder
+end
