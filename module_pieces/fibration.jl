@@ -1,8 +1,10 @@
 #=
-    Module for fibration partitioning. 
-        - Fast fibration partitioning
-        - Minimal balacing coloring.
+    Define 'Fiber' object and its main methods.
+
+    Define 'StrongComponent' object and its main methods.
 =#
+
+## ------------> FIBER OBJECT <------------- ##
 
 mutable struct Fiber
     index::Int
@@ -51,6 +53,13 @@ function num_nodes(fiber::Fiber)
     return fiber.number_nodes
 end
 
+"""
+    Returns all nodes in 'graph' that is pointed by 'fiber'.
+    This function is important to define an efficient procedure
+    to determine which fibers are input-set unstable with 
+    respect to 'fiber', assuring a time complexity of the order
+    of the outgoing neighborhood of 'fiber'.
+"""
 function sucessor_nodes(graph::Graph, fiber::Fiber)
     sucessor = Int[]
     for node in fiber.nodes
@@ -60,22 +69,103 @@ function sucessor_nodes(graph::Graph, fiber::Fiber)
     return collect(Int, Set(sucessor))
 end
 
-function input_stability(fiber::Fiber, graph::Graph, set::Fiber, num_edgetype::Int)
-    set_nodes = get_nodes(set)
-    edges_received = zeros(Int, num_edgetype, length(fiber.nodes))
+"""
+   Given the two fiber objects 'fiber' and 'pivot', it checks if 'fiber'
+   is input-set stable with respect to 'pivot', that is, every node of
+   'fiber' receives equivalent information, through 'graph', from 'pivot'.
 
-    for setnode in set_nodes
-        index = -1
-        ## find index
-        for (j, fnode) in enumerate(fiber.nodes)
-            if fnode==setnode
-                index = j
-                break
+   if input-set stable, returns true. Otherwise, returns false.
+
+    *** MISMATCH IN THE PYTHON CODE - CHECK LATER.
+"""
+function input_stability(fiber::Fiber, pivot::Fiber, graph::Graph, num_edgetype::Int)
+    fiber_nodes = get_nodes(fiber)
+    pivot_nodes = get_nodes(pivot)
+    edges_received = Dict{Int,Array{Int}}()
+
+    edgelist = graph.edges
+    edgetype = graph.int_eproperties["edgetype"]
+
+    # -- initiate the input-set array for each node of 'fiber' --
+    for node in fiber_nodes
+        edges_received[node] = zeros(Int, num_edgetype)
+    end
+
+    # -- Based on the outcoming edges of 'pivot' set, we set the
+    # -- input-set of each node of 'fiber'.
+    for w in pivot_nodes
+        pivot_obj = graph.vertices[w]
+        out_edges = pivot_obj.edges_source
+        for out_edge in out_edges
+            edge_index = out_edge.index
+            target_node = out_edge.target
+            if get(edges_received, target_node, -1)!=-1
+                edges_received[target_node][edge_index] += 1
             end
         end
+    end
 
-        node_obj = graph.vertices[setnode]
-        in_edges = node_obj.edges_target
-        # we need to find the index of the edge 
+    # -- Check input-set stability --
+    for j in 1:length(fiber_nodes)-1
+        if edges_received[fiber_nodes[j]]!=edges_received[fiber_nodes[j+1]]
+            return false
+        end
+    end
+    return true
+end
+
+## ---------------> StrongComponent < ---------------- ##
+
+mutable struct StrongComponent
+    number_nodes::Int
+    have_input::Bool
+    nodes::Array{Int}
+    type::Int
+    function StrongComponent()
+        number_nodes = 0
+        have_input = false
+        nodes = Int[]
+        type = -1
+    end
+end
+
+function insert_node(strong::StrongComponent, node::Int)
+    strong.number_nodes += 1
+    append!(strong.nodes, [node])
+end
+
+function get_nodes(strong::StrongComponent)
+    return strong.nodes
+end
+
+function get_input_bool(strong::StrongComponent)
+    return strong.have_input
+end
+
+"""
+    Check if the given SCC receives or not input from another 
+    SCC components in the 'graph'.
+
+    the field 'have_input' of 'strong' is modified to 'true'
+    if the component receives external information. Otherwise,
+    'have_input' maintains its default.
+"""
+function check_input(strong::StrongComponent, graph::Graph)
+    aux = -1
+    for node in strong.nodes
+        input_nodes = get_in_neighbors(node, graph)
+        for in_neighbor in input_nodes
+            if in_neighbor in strong.nodes
+                aux = 1
+            else
+                aux = -1
+            end
+            if aux==-1
+                strong.have_input = true
+                break
+        end
+        if strong.have_input
+            break
+        end
     end
 end

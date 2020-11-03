@@ -1,10 +1,12 @@
 # -- Define an edge --
 mutable struct Edge
+    index::Int
     source::Int
     target::Int
     is_directed::Bool
     function Edge(source::Int, target::Int, is_directed::Bool)
-        new(source, target, is_directed)
+        index = -1
+        new(index, source, target, is_directed)
     end
 end
 
@@ -271,6 +273,7 @@ function add_edge(i, j, graph::Graph)
     append!(node_i.edges_source, [new_edge])
     append!(node_j.edges_target, [new_edge])
     append!(graph.edges, [new_edge])
+    new_edge.index = length(graph.edges)
     graph.M += 1
 end
 
