@@ -135,6 +135,16 @@ function set_edges_properties(name::String, arr::Array{String}, graph::Graph)
     end
 end
 
+function list_properties(graph::Graph)
+    print("$(keys(graph.int_vproperties)) - Int - Vertex\n")
+    print("$(keys(graph.float_vproperties)) - Float - Vertex\n")
+    print("$(keys(graph.string_vproperties)) - String - Vertex\n")
+
+    print("$(keys(graph.int_eproperties)) - Int - Edge\n")
+    print("$(keys(graph.float_eproperties)) - Float - Edge\n")
+    print("$(keys(graph.string_eproperties)) - String - Edge\n")
+end
+
         ##################################################
         # ---------------------------------------------- #
 ######### ------------ Graph Manipulation -------------- ##########

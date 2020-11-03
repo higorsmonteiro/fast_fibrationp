@@ -54,3 +54,18 @@ function ER_k(N::Int, k_mean::Float64, is_directed::Bool)
     graph = fast_erdosr(N, p, is_directed)
     return graph
 end
+
+"""
+    Generate a random network by parsing the desired number of nodes,
+    desired mean degree and number of types of edges.
+
+    the edge property receives the name "edgetype".
+"""
+function ER_multilayer(N::Int, k_mean::Float64, n_types::Int, is_directed::Bool)
+    graph = ER_k(N, k_mean, is_directed)
+    possible_types = [j for j in 1:n_types ]
+
+    edgetypes_prop = [ rand(possible_types) for j in 1:length(graph.edges) ]
+    set_edges_properties("edgetype", edgetypes_prop, graph)
+    return graph
+end

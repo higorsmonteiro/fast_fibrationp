@@ -17,12 +17,9 @@ my_net.set_edges_properties("some_weight", weight, net)
 
 print(net.int_eproperties)
 
-er_example = my_net.ER_k(256, 2.0, false)
-deg = my_net.get_degree(er_example, "total")
-#my_net.printGraph(er_example)
-print("\n")
-print(sum(deg)/256.0)
-print("\n $(er_example.N)")
+#er_example = my_net.ER_k(256, 2.0, false)
+er_example = my_net.ER_multilayer(256, 2.0, 3, true)
+my_net.list_properties(er_example)
 
 #my_net.printGraph(net)
 # print("\n")
