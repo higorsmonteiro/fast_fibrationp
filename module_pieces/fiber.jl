@@ -163,6 +163,7 @@ function check_input(strong::StrongComponent, graph::Graph)
             if aux==-1
                 strong.have_input = true
                 break
+            end
         end
         if strong.have_input
             break
