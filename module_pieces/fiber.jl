@@ -126,12 +126,22 @@ mutable struct StrongComponent
         have_input = false
         nodes = Int[]
         type = -1
+        new(number_nodes, have_input, nodes, type)
     end
 end
 
-function insert_node(strong::StrongComponent, node::Int)
+"""
+    Add 'node' to 'strong' object. If 'node' is an array
+    of nodes, then all nodes are inserted.
+"""
+function insert_nodes(node::Int, strong::StrongComponent)
     strong.number_nodes += 1
     append!(strong.nodes, [node])
+end
+
+function insert_nodes(node::Array{Int}, strong::StrongComponent)
+    strong.number_nodes += length(node)
+    append!(strong.nodes, node)
 end
 
 function get_nodes(strong::StrongComponent)
@@ -167,6 +177,26 @@ function check_input(strong::StrongComponent, graph::Graph)
         end
         if strong.have_input
             break
+        end
+    end
+end
+
+"""
+    This function should be called after 'check_input'
+"""
+function classify_strong(strong::StrongComponent, graph::Graph)
+    if strong.have_input
+        strong.type = 0
+    else
+        if strong.number_nodes==1
+            in_neighbors = get_in_neighbors(strong.nodes[1], graph)
+            if length(in_neighbors)==0
+                strong.type = 1
+            else
+                strong.type = 2
+            end
+        else
+            strong.type = 1
         end
     end
 end

@@ -341,7 +341,7 @@ function get_out_neighbors(v_index::Int, graph::Graph)
     neighbors = Int[]
     out_edges_v = node_v.edges_source
     for cur_edge in out_edges_v
-        append!(neighbors, [cur_edge.source])
+        append!(neighbors, [cur_edge.target])
     end
     return collect(Int, Set(neighbors))
 end

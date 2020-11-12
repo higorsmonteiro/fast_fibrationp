@@ -23,19 +23,66 @@ function get_degree(graph::Graph, mode::String)
     return degree
 end
 
-function get_scc(graph::Graph)
-    LOWPT = [-1 for j in graph.vertices]
-    LOWVINE = [-1 for j in graph.vertices]
-    NUMBER = [-1 for j in graph.vertices]
-    STACK = Int[]
-    SCC = Array[]
-    i = 1
-    for (v, node) in enumerate(graph.vertices)
-        if NUMBER[v]==-1
-            strongconnect(v, graph, i, SCC, LOWPT, LOWVINE, NUMBER, STACK)
+"""
+    Tarjan's algorithm for finding strongly connected
+    components. Recursive.
+
+    Given 'graph' the function returns a tuple containing,
+    respectively, the list of components labels, the unique
+    component's labels and the number of components.
+"""
+function find_strong(graph::Graph)
+    UNVISITED = -1
+    N = length(graph.vertices)
+
+    id = 0
+    scount = 0
+
+    stack = Int[]
+    low = zeros(Int, N)
+    ids = [ UNVISITED for n in 1:N ]
+    onstack = [ false for n in 1:N ]
+
+    for i in 1:N
+        if ids[i] == UNVISITED
+            id, scount = dfs_tarjan(i, graph, stack, low, ids, onstack, id, scount)
         end
     end
-    return SCC
+    unique_labels = collect(Int, Set(low))
+    return low, unique_labels, scount
+end
+
+function dfs_tarjan(at::Int, g::Graph, stack::Array{Int},
+                    low::Array{Int}, ids::Array{Int},
+                    onstack::Array{Bool}, id::Int, scount::Int)
+    UNVISITED = -1
+    push!(stack, at)
+    onstack[at] = true
+    ids[at] = id
+    low[at] = id
+    id += 1
+
+    for at_out in get_out_neighbors(at, g)
+        if ids[at_out] == UNVISITED
+            id, scount = dfs_tarjan(at_out, g, stack, low, ids, onstack, id, scount)
+        end
+        if onstack[at_out]
+            low[at] = minimum([low[at], low[at_out]])
+        end
+    end
+
+    if ids[at] == low[at]
+        while true
+            node = pop!(stack)
+            onstack[node] = false
+            low[node] = ids[at]
+            if node == at
+                break
+            end
+        end
+        scount += 1
+    end
+    return id, scount
 end
 
 """
