@@ -23,41 +23,6 @@ function get_degree(graph::Graph, mode::String)
     return degree
 end
 
-function strongconnect(v::Int, graph::Graph, i::Int, SCC::Array,
-                       LOWPT::Array{Int}, LOWVINE::Array{Int},
-                       NUMBER::Array{Int}, STACK::Array{Int})
-    LOWPT[v] = i
-    LOWVINE[v] = i
-    NUMBER[v] = i
-    i+=1
-    push!(STACK, v)
-    for w in get_out_neighbors(v, graph)
-        if NUMBER[w]==-1
-            strongconnect(w, graph, i, SCC, LOWPT, LOWVINE, NUMBER, STACK)
-            LOWPT[v] = minimum([LOWPT[v], LOWPT[w]])
-            LOWVINE[v] = minimum([LOWVINE[v], LOWVINE[w]])
-        elseif w in get_in_neighbors(v, graph)
-            LOWPT[v] = minimum([LOWPT[v], NUMBER[w]])
-        elseif NUMBER[w] < NUMBER[v]
-            if w in STACK
-                LOWVINE[v] = minimum([LOWVINE[v], NUMBER[w]])
-            end
-        end
-    end
-
-    if LOWPT[v]==NUMBER[v] && LOWVINE[v]==NUMBER[v]
-        new_scc = Int[]
-        w = STACK[1]
-        while NUMBER[STACK[1]] >= NUMBER[v]
-            w = pop!(STACK)
-            append!(new_scc, [w])
-        end
-        if length(new_scc)>0
-            append!(SCC, [new_scc])
-        end
-    end
-end
-
 function get_scc(graph::Graph)
     LOWPT = [-1 for j in graph.vertices]
     LOWVINE = [-1 for j in graph.vertices]
