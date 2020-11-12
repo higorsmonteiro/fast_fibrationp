@@ -18,7 +18,10 @@ net = my_net.new_graph_from_edgelist(edges, true)
 #my_net.printGraph(net)
 #print(my_net.get_out_neighbors(7, net))
 
-print(my_net.initialize(net))
+partition, pivot_queue = my_net.initialize(net)
+for fiber in pivot_queue
+    print("$(fiber.nodes)\n")
+end
 
 # # Assign the other columns as properties for the edges.
 # eprops_cols = ["some_weight", "some_string"]

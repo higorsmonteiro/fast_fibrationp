@@ -114,6 +114,17 @@ function input_stability(fiber::Fiber, pivot::Fiber, graph::Graph, num_edgetype:
     return true
 end
 
+function copy_fiber(fiber::Fiber)
+    copy_fiber = Fiber()
+    copy_fiber.index = fiber.index
+    copy_fiber.nodes = copy(fiber.nodes)
+    copy_fiber.input_type = copy(fiber.input_type)
+    copy_fiber.number_nodes = length(copy_fiber.nodes)
+    copy_fiber.number_regulators = fiber.number_regulators
+    copy_fiber.regulators = copy(fiber.regulators)
+    return copy_fiber
+end
+
 ## ---------------> StrongComponent < ---------------- ##
 
 mutable struct StrongComponent
@@ -188,15 +199,19 @@ function classify_strong(strong::StrongComponent, graph::Graph)
     if strong.have_input
         strong.type = 0
     else
+        """
+            If it doesn't receive any external input, then we
+            must check if it is an isolated self-loop node.
+        """
         if strong.number_nodes==1
             in_neighbors = get_in_neighbors(strong.nodes[1], graph)
             if length(in_neighbors)==0
                 strong.type = 1
             else
-                strong.type = 2
+                strong.type = 2 # Isolated autorregulated node.
             end
         else
-            strong.type = 1
+            strong.type = 1 # SCC does not have external input.
         end
     end
 end
