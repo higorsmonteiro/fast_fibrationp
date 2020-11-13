@@ -76,32 +76,6 @@ function initialize(graph::Graph)
 end
 
 """
-    We define the list A of classes that receives information from
-    'pivot'. To guarantee that the fibration algorithm runs in loglinear
-    time, this procedure should take advantage of the 'fiber_index'
-    vertex property in the network to avoid a sweep over all the nodes
-    in it.
-
-    By getting the fiber indexes of all outcoming neighbors of the pivot
-    set nodes the 'receiver_classes' stores the indexes of the possible
-    unstable classes. Then, 'classes' lists the corresponding objects.
-
-    Returns a list of fibers representing the fibers that must be checked
-    for the input-set stability.
-"""
-function get_possible_unstable(graph::Graph, pivot::Fiber, partition::Array{Fiber})
-    fiber_index = graph.int_vproperties["fiber_index"]
-    receiver_classes = Int[]
-    pivot_sucessors = sucessor_nodes(graph, pivot)
-    for w in pivot_sucessors
-        push!(receiver_classes, fiber_index[w])
-    end
-    receiver_classes = collect(Int, Set(receiver_classes))
-    selected_classes = [ partition[ind] for ind in receiver_classes ]
-    return selected_classes
-end
-
-"""
     Push all the splitted classes to the pivot queue, with exception
     of the largest class.
 """
@@ -133,80 +107,94 @@ end
     At the end of the function, 'partition' is input-set stable with
     respect to 'pivot' and the 'pivot_queue' will be properly updated.
 """
-function fast_partitioning(partition::Array{Fiber}, receivers::Array{Fiber}, 
-                           pivot::Fiber, pivot_queue::Array{Fiber})
+function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber}, 
+                           pivot_queue::Array{Fiber})
     # Necessary data for the correct splitting.
     fiber_index = graph.int_vproperties["fiber_index"]
     edgetype_prop = graph.int_eproperties["edgetype"]
     number_edgetype = length(collect(Int, Set(edgetype_prop)))
 
+    # Default input-set string for those who does not have input from 'pivot'.
+    default_str = ""
+    for j in 1:number_edgetype
+        default_str = default_str*"0"
+    end
+
+    # Classes' index of the ones which receives input from 'pivot'.
+    input_classes = Int[]
+    # Input-set of the nodes with input from 'pivot'.
     input_dict = Dict{Int, Array{Int}}()
+    # Get all nodes with input from 'pivot'. Efficient.
     for w in pivot.nodes
         w_out_edges = graph.vertices[w].edges_source
         for edge in w_out_edges
             tgt = edge.target
-            f_index = fiber_index[tgt] 
             etype = edgetype_prop[edge.index]
+            push!(input_classes, fiber_index[tgt])
+            #f_index = fiber_index[tgt] 
 
+            # In case 'tgt' is not included in the dict yet.
             if get(input_dict, tgt, -1)==-1
                 input_dict[tgt] = [ 0 for j in 1:number_edgetype ]
             end
             input_dict[tgt][etype] += 1
         end
     end
+    input_classes = collect(Int, Set(input_classes))
+    receivers = Fiber[ copy_fiber(partition[j]) for j in input_classes ]
 
-    default_str = ""
-    for j in 1:number_edgetype
-        default_str = default_str*"0"
-    end
-    for f in receivers
-        aux_dict = Dict{String, Array{Int}}()
-        for v in f.nodes
-            if get(input_dict, v, -1)==-1 # no input from pivot.
-                aux_dict[default_str] = Int[]
-                push!(aux_dict[default_str], v)
-            else # there is input from pivot
-                iscv_str = ""
+    # ----------------------> SPLIT PROCEDURE <---------------------- #
+    # -- go over each pivot-inputted class and split it if necessary --
+    for r_fiber in receivers
+        str_input_aux = Dict{String, Array{Int}}()
+        for v in r_fiber.nodes
+            # if no input from 'pivot'.
+            if get(input_dict, v, -1)==-1 
+                str_input_aux[default_str] = Int[]
+                push!(str_input_aux[default_str], v)
+            else # there is input from 'pivot'
+                input_str = ""
                 for j in input_dict[v]
-                    iscv_str = iscv_str*"$j"
+                    input_str = input_str*"$j"
                 end
-                if get(aux_dict, iscv_str, -1)==-1
-                    aux_dict[iscv_str] = Int[]
+                if get(str_input_aux, input_str, -1)==-1
+                    str_input_aux[input_str] = Int[]
                 end
-                push!(aux_dict[iscv_str], v)
+                push!(str_input_aux[input_str], v)
             end
         end
-        """ 
-            -- SPLIT PROCEDURE --
         
-            'aux_dict' now represents the splitted classes for the
-            current fiber 'f'
-        """
-        all_keys = collect(keys(aux_dict))
-        if length(all_keys)==1 # class is stable w.r.t pivot.
+        # -- 'str_input_aux' now represents the splitted classes for the
+        # -- current fiber 'r_fiber'. Each key of it holds the new class.
+        all_keys = collect(keys(str_input_aux))
+        # if class is stable w.r.t 'pivot', then go to the next class.
+        if length(all_keys)==1 
             continue
         end
-        # -- choose the first key to keep the nodes --
         new_classes = Fiber[]
         nodes_to_remove = Int[]
-        cur_fiber = partition[f.index]
+        cur_fiber = partition[r_fiber.index]
+        # -- choose the first key to keep the nodes --
         for key in all_keys[2:length(all_keys)]
             # -- create new fiber and add the nodes from the current key. --
             new_fiber = Fiber()
-            insert_nodes(aux_dict[key], new_fiber)
             new_fiber.index = length(partition)+1
+            insert_nodes(str_input_aux[key], new_fiber)
+            # -- Update the pointer of the nodes to their new fiber --
             for u in new_fiber.nodes
                 fiber_index[u] = new_fiber.index
             end
+            # -- put the new fiber in the partition --
             push!(partition, new_fiber)
             push!(new_classes, copy_fiber(new_fiber))
             # -- at the same time, the nodes added to the new fiber must be 
             # -- deleted from its original fiber.
-            append!(nodes_to_remove, aux_dict[key])
+            append!(nodes_to_remove, str_input_aux[key])
         end
         delete_nodes(nodes_to_remove, cur_fiber)
         push!(new_classes, copy_fiber(cur_fiber))
 
+        # -- Update 'pivot_queue' --
         enqueue_splitted(new_classes, pivot_queue)
     end
 end
