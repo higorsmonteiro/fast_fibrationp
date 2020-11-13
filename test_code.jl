@@ -35,9 +35,3 @@ end
 # #er_example = my_net.ER_k(256, 2.0, false)
 # er_example = my_net.ER_multilayer(256, 2.0, 3, true)
 # my_net.list_properties(er_example)
-
-#my_net.printGraph(net)
-# print("\n")
-# print(my_net.DFS(1, net))
-# print("\n")
-# print(my_net.extract_scc(net))
