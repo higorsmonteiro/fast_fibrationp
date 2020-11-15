@@ -191,7 +191,7 @@ end
     The function assumes that the vertices are labeled
     from 1 to N.
 """
-function new_graph_from_edgelist(edgelist::Array{Int, 2}, is_directed::Bool)
+function graph_from_edgelist(edgelist::Array{Int, 2}, is_directed::Bool)
     g = Graph(is_directed)
     N = maximum([maximum(edgelist[:,1]), maximum(edgelist[:,2])])
 
@@ -265,9 +265,9 @@ function add_edge(i, j, graph::Graph)
     node_i = graph.vertices[i]
     node_j = graph.vertices[j]
     # If the edge already exists, then do nothing
-    if is_edge(i, j, graph)
-        return 
-    end
+    #if is_edge(i, j, graph)
+    #    return 
+    #end
     # -- Create the edge object --
     new_edge = Edge(node_i.index, node_j.index, is_directed)
     append!(node_i.edges_source, [new_edge])
@@ -374,25 +374,38 @@ end
     [1 2; 2 3; ...] and [["prop1", "prop2"], ["prop1", "prop2"], ...]
 """
 function process_edgefile(fname::String)
-    src_tgt = Array{Int}[]
+    src_tgt = Array{String}[]
     edge_prop = Array{String}[]
     
     open(fname, "r") do f
         for line in eachline(f)
             line_elem = split(line)
-            elem1 = Int[parse(Int, line_elem[1]), parse(Int, line_elem[2])]
+            elem1 = [ line_elem[1], line_elem[2] ]
+            #elem1 = Int[parse(Int, line_elem[1]), parse(Int, line_elem[2])]
 
             append!(src_tgt, [elem1])
             append!(edge_prop, [line_elem[3:length(line_elem)]])
         end
     end
 
-    edges = copy(transpose(reduce(hcat, src_tgt)))
+    src_tgt = reduce(hcat, src_tgt)
+    edges = permutedims(src_tgt)
     return edges, edge_prop
 end
 
 """
+    Process the edge properties returned by function 'process_edgefile'.
+    
+    As returned from 'process_edgefile', eprops is an array containing
+    string arrays with the properties' values for each edge.
 
+    For example, 'eprops' holds two string arrays if the edgefile has two
+    extra columns. The size of these arrays are equal to the number of edges.
+    For this, 'names' represents the arrays with the string names for each 
+    column.
+
+    Returns a dictionary where the keys are the names in 'names' and the
+    values are arrays with the edge properties indexed from 1 to M. 
 """
 function process_eprops(eprops::Array{Array{String}}, names::Array{String})
     container = Array{String}[]
@@ -411,4 +424,28 @@ function process_eprops(eprops::Array{Array{String}}, names::Array{String})
         holder[name] = container[j]
     end
     return holder
+end
+
+"""
+
+"""
+function create_indexing(edges::Array{String,2})
+    unroll = reduce(vcat, edges)
+    unroll = collect(Set(unroll))
+    N = length(unroll)
+
+    hash = Dict{String, Int}()
+    for (j, name) in enumerate(unroll)
+        hash[name] = j
+    end
+
+    M, dummy = size(edges)
+    new_edges = Array{Int}[]
+    for j in 1:M
+        u = hash[edges[j,1]]
+        v = hash[edges[j,2]]
+        append!(new_edges, [[u, v]])
+    end
+    new_edges = copy(transpose(reduce(hcat, new_edges)))
+    return new_edges, hash
 end

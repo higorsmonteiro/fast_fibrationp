@@ -104,14 +104,17 @@ end
     a list representing its input-set. With these we make the proper 
     splitting of the unstable classes.
 
+    'eprop_name' {default to "edgetype"} is the edge property that should
+    be used in the algorithm.
+
     At the end of the function, 'partition' is input-set stable with
     respect to 'pivot' and the 'pivot_queue' will be properly updated.
 """
 function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber}, 
-                           pivot_queue::Array{Fiber})
+                           pivot_queue::Array{Fiber}, eprop_name="edgetype")
     # Necessary data for the correct splitting.
     fiber_index = graph.int_vproperties["fiber_index"]
-    edgetype_prop = graph.int_eproperties["edgetype"]
+    edgetype_prop = graph.int_eproperties[eprop_name]
     number_edgetype = length(collect(Int, Set(edgetype_prop)))
 
     # Default input-set string for those who does not have input from 'pivot'.
@@ -197,4 +200,22 @@ function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber},
         # -- Update 'pivot_queue' --
         enqueue_splitted(new_classes, pivot_queue)
     end
+end
+
+"""
+    Main function for the fibration. Returns the final partitioning
+    of the given 'graph'.
+"""
+function fast_fibration(graph::Graph)
+    if !graph.is_directed
+        print("Undirected network\n")
+        return
+    end
+
+    partition, pivot_queue = initialize(graph)
+    while length(pivot_queue)>0
+        pivot_set = pop!(pivot_queue)
+        fast_partitioning(graph, pivot_set, partition, pivot_queue)
+    end
+    return partition
 end

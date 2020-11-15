@@ -1,4 +1,4 @@
-module my_net
+module netx
 
 include("module_pieces/base_net.jl")
 include("module_pieces/topology.jl")
