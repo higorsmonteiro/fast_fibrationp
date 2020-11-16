@@ -65,6 +65,7 @@ function initialize(graph::Graph)
         for v in class.nodes
             fiber_index[v] = index
         end
+        partition[index].index = index
     end
     # -- Push the isolated self-loop nodes to the queue --
     for isolated in autopivot
@@ -218,4 +219,9 @@ function fast_fibration(graph::Graph)
         fast_partitioning(graph, pivot_set, partition, pivot_queue)
     end
     return partition
+end
+
+# =================== BALANCED COLORING ===================== #
+function coloring_partitioning()
+    x = 1
 end
