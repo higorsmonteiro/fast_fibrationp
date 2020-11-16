@@ -2,7 +2,7 @@ include("../netx.jl")
 
 import .netx
 
-edges, eprops = netx.process_edgefile("../datasets/hernan_data/Ecoli.txt")
+edges, eprops = netx.process_edgefile("../datasets/rawData/Ecoli.txt")
 
 fmt_edges, name_map = netx.create_indexing(edges)
 fmt_eprops = netx.process_eprops(eprops, ["regulation"])

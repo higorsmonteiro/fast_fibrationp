@@ -112,15 +112,14 @@ end
     respect to 'pivot' and the 'pivot_queue' will be properly updated.
 """
 function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber}, 
-                           pivot_queue::Array{Fiber}, eprop_name="edgetype")
+                           pivot_queue::Array{Fiber}, n_edgetype::Int, eprop_name="edgetype")
     # Necessary data for the correct splitting.
     fiber_index = graph.int_vproperties["fiber_index"]
     edgetype_prop = graph.int_eproperties[eprop_name]
-    number_edgetype = length(collect(Int, Set(edgetype_prop)))
 
     # Default input-set string for those who does not have input from 'pivot'.
     default_str = ""
-    for j in 1:number_edgetype
+    for j in 1:n_edgetype
         default_str = default_str*"0"
     end
 
@@ -139,7 +138,7 @@ function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber},
 
             # In case 'tgt' is not included in the dict yet.
             if get(input_dict, tgt, -1)==-1
-                input_dict[tgt] = [ 0 for j in 1:number_edgetype ]
+                input_dict[tgt] = [ 0 for j in 1:n_edgetype ]
             end
             input_dict[tgt][etype] += 1
         end
@@ -207,21 +206,90 @@ end
     Main function for the fibration. Returns the final partitioning
     of the given 'graph'.
 """
-function fast_fibration(graph::Graph)
+function fast_fibration(graph::Graph, eprop_name="edgetype")
     if !graph.is_directed
         print("Undirected network\n")
         return
     end
 
+    edgetype_prop = graph.int_eproperties[eprop_name]
+    number_edgetype = length(collect(Int, Set(edgetype_prop)))
+
     partition, pivot_queue = initialize(graph)
     while length(pivot_queue)>0
         pivot_set = pop!(pivot_queue)
-        fast_partitioning(graph, pivot_set, partition, pivot_queue)
+        fast_partitioning(graph, pivot_set, partition, pivot_queue, number_edgetype)
     end
     return partition
 end
 
 # =================== BALANCED COLORING ===================== #
-function coloring_partitioning()
-    x = 1
+
+"""
+    Define the ISCV for each node in the graph. At this step, 
+    each ISCV has size equal to 'ncolor' times 'ntype'.
+"""
+function set_ISCV(graph::Graph, ncolor::Int, ntype::Int)
+    fiber_index = graph.int_vproperties["fiber_index"]
+    edgetype_prop = graph.int_eproperties["edgetype"]
+
+    intype = Int[]
+    input_colors = Int[]
+    iscv = zeros(Int, (ncolor*ntype, length(graph.vertices)))
+    # For each node check its incoming edges' colors. 
+    for v in 1:length(graph.vertices)
+        node = graph.vertices[v]
+        incoming_edges = node.edges_target
+        for edge in incoming_edges
+            src = edge.source
+            incoming_color = fiber_index[src]
+            incoming_type = edgetype_prop[edge.index]
+            iscv[(incoming_color-1)*ntype + incoming_type, v] += 1
+        end
+    end
+    return iscv
+end
+
+"""
+
+"""
+function s_coloring(graph::Graph, partition::Array{Fiber}, num_edgetype::Int)
+    fiber_index = graph.int_vproperties["fiber_index"]
+    edgetype_prop = graph.int_eproperties["edgetype"]
+
+    # -- Set the ISCV matrix --
+    input_dict = Dict{String, Array{Int}}()
+    iscv = zeros(Int, (ncolor*ntype, length(graph.vertices)))
+    # For each node check its incoming edges' colors. 
+    for v in 1:length(graph.vertices)
+        node = graph.vertices[v]
+        incoming_edges = node.edges_target
+        for edge in incoming_edges
+            src = edge.source
+            incoming_color = fiber_index[src]
+            incoming_type = edgetype_prop[edge.index]
+            # pay attention on indexing.
+            iscv[(incoming_color-1)*ntype + incoming_type, v] += 1
+        end
+        # -- Convert the ISCV into a string --
+        input_str = ""
+        default_str = ""
+        for j in 1:(ncolor*ntype)
+            default_str*="0"
+            input_str*="$(iscv[j,v])"
+        end
+        # -- Put nodes with same ISCV in the same key.
+        if input_str==default_str
+            
+        elseif get(input_dict, input_str, -1)==-1
+            input_dict[input_str] = Int[]
+        end
+        push!(input_dict[input_str], v)
+    end
+
+    # -- The keys of 'input_dict' are the unique ISCV 
+    # -- and each of these keys holds the belonging nodes.
+    # -- NOTE: nodes without input are in the same key.
+    updated_color = collect(keys(input_dict))
+
 end
