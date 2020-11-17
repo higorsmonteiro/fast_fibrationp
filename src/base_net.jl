@@ -373,7 +373,7 @@ end
     returns ->
     [1 2; 2 3; ...] and [["prop1", "prop2"], ["prop1", "prop2"], ...]
 """
-function process_edgefile(fname::String)
+function process_edgefile(fname::String, convert_int=false)
     src_tgt = Array{String}[]
     edge_prop = Array{String}[]
     
@@ -390,6 +390,9 @@ function process_edgefile(fname::String)
 
     src_tgt = reduce(hcat, src_tgt)
     edges = permutedims(src_tgt)
+    if convert_int
+        edges = parse.(Int, edges)
+    end
     return edges, edge_prop
 end
 

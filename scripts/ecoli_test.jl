@@ -19,23 +19,14 @@ end
 g = netx.graph_from_edgelist(fmt_edges, true)
 netx.set_edges_properties("edgetype", edgetype, g)
 
-fiber_dict = netx.minimal_coloring(g)
+#partition = netx.fast_fibration(g)
+#partition = netx.minimal_coloring(g)
 
+## Count the number of nontrivial fibers
 count = []
-fkeys = collect(keys(fiber_dict))
-for key in fkeys
-    if length(fiber_dict[key])>1
-        push!(count, key)
+for fiber in partition
+    if length(fiber.nodes)>1
+        push!(count, fiber.index)
     end
 end
-
-#partition = netx.fast_fibration(g)
-#
-## Count the number of nontrivial fibers
-#count = []
-#for fiber in partition
-#    if length(fiber.nodes)>1
-#        push!(count, fiber.index)
-#    end
-#end
 print(length(count))

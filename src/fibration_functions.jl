@@ -289,7 +289,13 @@ function initialize_coloring(graph::Graph)
 end
 
 """
+    Splitting function for the minimal balanced coloring algorithm.
 
+    Given 'graph' with the vertex property 'fiber_index' indicating
+    the class of each node, and also the 'ncolor' and 'ntype' corresponding
+    to the current number of colors and the number of edge types in the 
+    network, the function modifies 'fiber_index' if the coloring is not
+    balanced and returns the new value of 'ncolor'.
 """
 function s_coloring(graph::Graph, ncolor::Int, ntype::Int)
     fiber_index = graph.int_vproperties["fiber_index"]
@@ -422,6 +428,13 @@ function s_coloring_self(graph::Graph, ncolor::Int, ntype::Int, autopivot::Fiber
     return ncolor
 end
 
+"""
+    Main call function for the minimal balanced coloring.
+
+    'graph' is the network structure to be partitioned, and 'eprop_name'
+    is the name of the edge property holding the type of the edges. (this
+    property must be an integer prop ranging from 1 to number of types.)
+"""
 function minimal_coloring(graph::Graph, eprop_name="edgetype")
     if !graph.is_directed
         print("Undirected network\n")
@@ -431,34 +444,40 @@ function minimal_coloring(graph::Graph, eprop_name="edgetype")
     edgetype_prop = graph.int_eproperties[eprop_name]
     num_edgetype = length(collect(Int, Set(edgetype_prop)))
  
-    partition, autopivot = initialize(graph)
+    # -- Set the 'fiber_index' property for the network --
+    partition, autopivot = initialize_coloring(graph)
     fiber_index = graph.int_vproperties["fiber_index"]
+    # -- Number of color before and after refinement --
     ncolor_new = -1
     ncolor_old = length(collect(Int, Set(fiber_index)))
 
-    self_bool = false
+    # -- Refinement process through coloring --
     while true
         ncolor_new = s_coloring(graph, ncolor_old, num_edgetype)
         if ncolor_new==ncolor_old
-            #for pivot in autopivot
-            #    ncolor_new = s_coloring_self(graph, ncolor_new, num_edgetype, pivot)
-            #end
             break
         end
-        print("$(ncolor_old), $(ncolor_new)\n")
+        #print("$(ncolor_old), $(ncolor_new)\n")
         ncolor_old = ncolor_new
     end
     # --------------------------------------------------------- #
 
-    # -- Create the partition structure --
+    # -- After the coloring is balanced generate the fiber structure --
     fiber_dict = Dict{Int, Array{Int}}()
     fiber_index = graph.int_vproperties["fiber_index"]
-
     for v in 1:length(graph.vertices)
         if get(fiber_dict, fiber_index[v], -1)==-1
             fiber_dict[fiber_index[v]] = Int[]
         end
         push!(fiber_dict[fiber_index[v]], v)
     end
-    return fiber_dict
+
+    partition = Fiber[]
+    for key in collect(keys(fiber_dict))
+        new_fiber = Fiber()
+        insert_nodes(fiber_dict[key], new_fiber)
+        new_fiber.index = length(partition)+1
+        push!(partition, new_fiber)
+    end
+    return partition
 end

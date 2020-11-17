@@ -86,7 +86,8 @@ function ER_multi(N::Int, k_mean::Float64, n_types::Int, is_directed::Bool, self
 end
 
 """
-
+    Function specific for exporting the generated random networks.
+    The only metadata exported together is the "edgetype" property.
 """
 function export_edgefile(graph::Graph, fout::String)
     edges = graph.edges
