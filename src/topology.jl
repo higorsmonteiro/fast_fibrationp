@@ -119,44 +119,124 @@ function extract_scc(graph::Graph)
     return sccs
 end
 
-"""
-    Depth-First Search, starting from node of index 'v_index'.
-"""
-function DFS(v_index::Int, graph::Graph)
-    stack = Int[]
-    visited = Int[ 0 for i in 1:length(graph.vertices) ]
-    for w in get_all_neighbors_aware(v_index, graph)
-        push!(stack, w)
-    end
-    visited[v_index] = 1
+function dfs_search(graph::Graph)
+    N = length(graph.vertices)
+    color = [-1 for j in 1:N ]
+    dist = [-1 for j in 1:N ]
+    parent = [-1 for j in 1:N ]
+    finished = [-1 for j in 1:N ]
 
-    while length(stack)!=0
-        v = pop!(stack)
-        if visited[v]==0
-            for w in get_all_neighbors_aware(v, graph)
-                push!(stack, w)
-            end
-            visited[v] = 1
+    time = [0]
+    for u in 1:N
+        if color[u]==-1
+            dfs_visit(u, graph, time, color, dist, parent, finished)
         end
     end
-    return Int[ j for (j, value) in enumerate(visited) if value==1 ]
+    return color, parent, finished
 end
 
-"""
-    Breadth-First Search, starting from node of index 'v_index'.
-"""
-function BFS(v_index::Int, graph::Graph)
-    queue = Int[]
-    visited = Int[ 0 for i in 1:length(graph.vertices) ]
-    append!(queue, get_all_neighbors_aware(v_index, graph))
-    visited[v_index] = 1 
-    
-    while length(queue)!=0
-        v = pop!(queue)
-        if visited[v]==0
-            append!(queue, get_all_neighbors_aware(v, graph))
-            visited[v] = 1        
+function dfs_visit(u::Int, graph::Graph, time::Array{Int},
+                   color::Array{Int}, dist::Array{Int},
+                   parent::Array{Int}, finished::Array{Int})
+    time[1] += 1
+    dist[u] = time[1]
+    color[u] = 0
+    u_adj = get_out_neighbors(u, graph)
+    for v in u_adj
+        if color[v]==-1
+            parent[v] = u
+            dfs_visit(v, graph, time, color, dist, parent, finished)
         end
     end
-    return Int[ j for (j, value) in enumerate(visited) if value==1 ]
+    color[u] = 1
+    time[1] += 1
+    finished[u] = time[1]
+end
+
+function bfs_search(source::Int, graph::Graph)
+    N = length(graph.vertices)
+    color = [-1 for j in 1:N]
+    dist = [-1 for j in 1:N]
+    parent = [-1 for j in 1:N]
+
+    # -1/0/1 -> white/gray/black
+    color[source] = 0
+    dist[source] = 0
+    parent[source] = -1
+
+    queue = Int[]
+    push!(queue, source)
+    while length(queue)>0
+        u = pop!(queue)
+        u_adj = get_out_neighbors(u, graph)
+        for w in u_adj
+            if color[w]==-1
+                color[w] = 0
+                dist[w] = dist[u]+1
+                parent[w] = u
+                push!(queue, w)
+            end
+        end
+        color[u] = 1
+    end
+    return color, dist, parent
+end
+
+function transpose_graph(graph::Graph)
+    edges = graph.edges
+    for edge in edges
+        src = edge.source
+        tgt = edge.target
+        edge.source = tgt
+        edge.target = src
+    end
+    for node in graph.vertices
+        aux_src = node.edges_source
+        aux_tgt = node.edges_target
+        node.edges_source = aux_tgt
+        node.edges_target = aux_src
+    end
+end
+
+function find_root(node::Int, parent::Array{Int})
+    par = parent[node]
+    r = node
+    while par!=-1
+        r = par
+        par = parent[par]
+    end
+    return r
+end
+
+function extract_strong(graph::Graph, graph_t::Graph)
+    color, dist, parent, finished = dfs_search(graph)
+    node_ordering = sortperm(finished, rev=true)
+
+    N = length(graph_t)
+    color2 = [-1 for j in 1:N ]
+    dist2 = [-1 for j in 1:N ]
+    parent2 = [-1 for j in 1:N ]
+    finished2 = [-1 for j in 1:N ]
+    time = [0]
+    for u in node_ordering
+        if color2[u]==-1
+            dfs_visit(u, graph_t, time, color2, dist2, parent2, finished2)
+        end
+    end
+
+    # -- Separate SCCs --
+    sccs = Dict{Int, Array{Int}}()
+    for v in 1:N
+        root = find_root(v, parent2)
+        if get(sccs, root, -1)==-1
+            sccs[root] = Int[]
+        end
+        push!(sccs[root], v)
+    end
+
+    scc_list = Array{Int}[]
+    for key in collect(keys(sccs))
+        push!(scc_list, sccs[key])
+    end
+    return scc_list
 end
