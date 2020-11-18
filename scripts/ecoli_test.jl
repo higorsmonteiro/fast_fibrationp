@@ -17,21 +17,16 @@ end
 
 # -- Create network and set the edgetypes as an edge property --
 g = netx.graph_from_edgelist(fmt_edges, true)
-g_t = netx.graph_from_edgelist(fmt_edges, true)
 netx.set_edges_properties("edgetype", edgetype, g)
-netx.set_edges_properties("edgetype", edgetype, g_t)
 
-netx.transpose_graph(g_t)
-lst = netx.extract_strong(g, g_t)
-print(length(lst))
-#partition = netx.fast_fibration(g)
+partition = netx.fast_fibration(g)
 #partition = netx.minimal_coloring(g)
 
-## Count the number of nontrivial fibers
-#count = []
-#for fiber in partition
-#    if length(fiber.nodes)>1
-#        push!(count, fiber.index)
-#    end
-#end
-#print(length(count))
+# Count the number of nontrivial fibers
+count = []
+for fiber in partition
+    if length(fiber.nodes)>1
+        push!(count, fiber.index)
+    end
+end
+print(length(count))

@@ -198,6 +198,9 @@ function transpose_graph(graph::Graph)
     end
 end
 
+"""
+    Auxialiary function to identify the root of a tree.
+"""
 function find_root(node::Int, parent::Array{Int})
     par = parent[node]
     r = node
@@ -208,11 +211,20 @@ function find_root(node::Int, parent::Array{Int})
     return r
 end
 
-function extract_strong(graph::Graph, graph_t::Graph)
-    color, dist, parent, finished = dfs_search(graph)
+"""
+    Extract the strongly connected components of the graph.
+
+    Returns a list of integer lists. Each list contains the
+    indexes of the nodes belonging to the same component.
+"""
+function extract_strong(graph::Graph)
+    color, parent, finished = dfs_search(graph)
     node_ordering = sortperm(finished, rev=true)
 
-    N = length(graph_t)
+    graph_t = copy_graph(graph)
+    transpose_graph(graph_t)
+
+    N = length(graph_t.vertices)
     color2 = [-1 for j in 1:N ]
     dist2 = [-1 for j in 1:N ]
     parent2 = [-1 for j in 1:N ]
@@ -223,11 +235,15 @@ function extract_strong(graph::Graph, graph_t::Graph)
             dfs_visit(u, graph_t, time, color2, dist2, parent2, finished2)
         end
     end
-
+    
     # -- Separate SCCs --
     sccs = Dict{Int, Array{Int}}()
+    node_labels = [-1 for j in 1:N]
+    unique_labels = Int[]
     for v in 1:N
         root = find_root(v, parent2)
+        node_labels[v] = root
+        push!(unique_labels, root)
         if get(sccs, root, -1)==-1
             sccs[root] = Int[]
         end
@@ -238,5 +254,7 @@ function extract_strong(graph::Graph, graph_t::Graph)
     for key in collect(keys(sccs))
         push!(scc_list, sccs[key])
     end
-    return scc_list
+    unique_labels = collect(Int, Set(unique_labels))
+    return node_labels, unique_labels, length(unique_labels)
+    #return node_labels, scc_list, length(scc_list)
 end

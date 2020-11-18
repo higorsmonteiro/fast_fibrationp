@@ -12,7 +12,8 @@
 function initialize(graph::Graph)
     N = length(graph.vertices)
 
-    scc_info = find_strong(graph)
+    #scc_info = find_strong(graph)
+    scc_info = extract_strong(graph)
     node_labels = scc_info[1]
     unique_labels = scc_info[2]
     N_scc = scc_info[3]
