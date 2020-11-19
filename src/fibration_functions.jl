@@ -12,20 +12,11 @@
 function initialize(graph::Graph)
     N = length(graph.vertices)
 
-    #scc_info = find_strong(graph)
-    scc_info = extract_strong(graph)
+    #scc_info = find_strong(graph, true)
+    scc_info = extract_strong(graph, true)
     node_labels = scc_info[1]
     unique_labels = scc_info[2]
-    N_scc = scc_info[3]
-
-    # -- Initialize dictionary to hold the components' nodes -- 
-    components = Dict{Int, Array{Int}}()
-    for l in unique_labels
-        components[l] = Int[]
-    end
-    for (j, label) in enumerate(node_labels)
-        push!(components[label], j)
-    end
+    components = scc_info[3]
 
     # -- 'sccs' holds a list of 'StrongComponent' objects --
     sccs = StrongComponent[]
@@ -34,9 +25,9 @@ function initialize(graph::Graph)
         insert_nodes(components[label], new_scc)
         push!(sccs, new_scc)
     end
-
     # -- Check if each SCC receives or not input from other
     # -- components not itself --
+    
     partition = Fiber[Fiber()]
     autopivot = Fiber[]
     for strong in sccs

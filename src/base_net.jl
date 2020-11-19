@@ -1,33 +1,43 @@
+#=
+
+=#
+
+"""
+    -------------------------------------------------------------------
+    Build the fundamental data structures to define vertices, edges and 
+    the graph itself.
+    -------------------------------------------------------------------
+"""
+
 # -- Define an edge --
 mutable struct Edge
     index::Int
     source::Int
     target::Int
-    is_directed::Bool
-    function Edge(source::Int, target::Int, is_directed::Bool)
+    function Edge(source::Int, target::Int)
         index = -1
-        new(index, source, target, is_directed)
+        new(index, source, target)
     end
 end
 
-# -- Define a node --
-mutable struct node
+# -- Define a Vertex --
+mutable struct Vertex
     index::Int
     edges_source::Array{Edge}
     edges_target::Array{Edge}
-    function node(index::Int)
+    function Vertex(index::Int)
         edges_source = Edge[]
         edges_target = Edge[]
         new(index, edges_source, edges_target)
     end
 end
 
-# -- Define a graph -- 
+# -- Define a graph structure -- 
 mutable struct Graph
     N::Int
     M::Int
     is_directed::Bool
-    vertices::Array{node}
+    vertices::Array{Vertex}
     edges::Array{Edge}
     # ---------- Vertex properties ----------- #
     int_vproperties::Dict{String, Array{Int}}
@@ -41,7 +51,7 @@ mutable struct Graph
     function Graph(is_directed::Bool)
         N = 0
         M = 0
-        vertices = node[]
+        vertices = Vertex[]
         edges = Edge[]
         int_vproperties = Dict{String, Array{Int}}()
         float_vproperties = Dict{String, Array{Float64}}()
@@ -154,101 +164,12 @@ end
         ##################################################
 
 """
-    Given an adjacency list, we build a network.
-
-    The adjacency list must be of the following form:
-    
-    adjlist = [[1,2,3,4,...,j,..],
-               [3,5],
-               ...,
-               [3,6,7]]
-
-    where all the node indexes must be inside the range
-    [1,N].
-"""
-function create_graph(adjlist, is_directed::Bool)
-    new_graph = Graph(is_directed)
-    # First, create all the nodes.
-    for j in 1:length(adjlist)
-        add_node(new_graph)
-    end
-
-    # Then, build the connections.
-    for (j, nodelist) in enumerate(adjlist)
-        for k in nodelist
-            add_edge(j, k, new_graph)
-        end
-    end
-    return new_graph
-end
-
-"""
-    Create graph from edgelist.
-
-    edgelist is an array of dimension M x 2 containing
-    the source and target of each edge.
-
-    The function assumes that the vertices are labeled
-    from 1 to N.
-"""
-function graph_from_edgelist(edgelist::Array{Int, 2}, is_directed::Bool)
-    g = Graph(is_directed)
-    N = maximum([maximum(edgelist[:,1]), maximum(edgelist[:,2])])
-
-    # -- Create the vertices --
-    for j in 1:N
-        add_node(g)
-    end
-    # -- Then, build the connections
-    for j in 1:length(edgelist[:,1])
-        add_edge(edgelist[j,1], edgelist[j,2], g)
-    end
-    return g
-end
-
-"""
-    Check if the edge(i,j) already exists in the network.
-    If the network is directed, then we check for i->j, while
-    for the undirected, i<->j.
-
-    Time complexity: O(k), where k = k_i + k_j.
-"""
-function is_edge(i, j, graph::Graph)
-    node_i = graph.vertices[i]
-    node_j = graph.vertices[j]
-    is_directed = graph.is_directed
-
-    if is_directed
-        out_edges_i = node_i.edges_source
-        for cur_edge in out_edges_i
-            if cur_edge.target == node_j.index
-                return true
-            end
-        end
-    else
-        out_edges_i = node_i.edges_source
-        in_edges_i = node_i.edges_target
-        for cur_edge in out_edges_i
-            if cur_edge.target == node_j.index
-                return true
-            end
-        end
-        for cur_edge in in_edges_i
-            if cur_edge.source == node_j.index
-                return true
-            end
-        end
-    end
-    return false
-end
-
-"""
-    Create a new node in the given Graph.
+    Create a new Vertex in the given Graph.
 """
 function add_node(graph::Graph)
     index = graph.N+1
-    new_node = node(index)
-    append!(graph.vertices, [new_node])
+    new_node = Vertex(index)
+    push!(graph.vertices, new_node)
     graph.N += 1
 end
 
@@ -264,17 +185,48 @@ function add_edge(i, j, graph::Graph)
     is_directed = graph.is_directed
     node_i = graph.vertices[i]
     node_j = graph.vertices[j]
-    # If the edge already exists, then do nothing
-    #if is_edge(i, j, graph)
-    #    return 
-    #end
+
     # -- Create the edge object --
-    new_edge = Edge(node_i.index, node_j.index, is_directed)
-    append!(node_i.edges_source, [new_edge])
-    append!(node_j.edges_target, [new_edge])
-    append!(graph.edges, [new_edge])
+    new_edge = Edge(node_i.index, node_j.index)
+    push!(node_i.edges_source, new_edge)
+    push!(node_j.edges_target, new_edge)
+    push!(graph.edges, new_edge)
     new_edge.index = length(graph.edges)
     graph.M += 1
+end
+
+"""
+    Check if the edge(i,j) already exists in the network.
+    If the network is directed, then we check for i->j, while
+    for the undirected, i<->j.
+"""
+function is_edge(i, j, graph::Graph)
+    node_i = graph.vertices[i]
+    node_j = graph.vertices[j]
+    is_directed = graph.is_directed
+
+    if is_directed
+        out_edges = node_i.edges_source
+        for cur_edge in out_edges
+            if cur_edge.target == node_j.index
+                return true
+            end
+        end
+    else
+        out_edges = node_i.edges_source
+        in_edges = node_i.edges_target
+        for cur_edge in out_edges
+            if cur_edge.target == node_j.index
+                return true
+            end
+        end
+        for cur_edge in in_edges
+            if cur_edge.source == node_j.index
+                return true
+            end
+        end
+    end
+    return false
 end
 
 """
@@ -298,66 +250,28 @@ function get_all_neighbors_aware(v_index::Int, graph::Graph)
     return collect(Int, Set(neighbors))
 end
 
-"""
-    Returns an iterator containing all the neighbors of node
-    of index 'v_index'. Independent of network direction.
-"""
-function get_all_neighbors(v_index::Int, graph::Graph)
-    node_v = graph.vertices[v_index]
-    neighbors = Int[]
-    out_edges_v = node_v.edges_source
-    for cur_edge in out_edges_v
-        append!(neighbors, [cur_edge.target])
-    end
-    in_edges_v = node_v.edges_target
-    for cur_edge in in_edges_v
-        append!(neighbors, [cur_edge.source])
-    end
-    return collect(Int, Set(neighbors))
-end
+# -----> COPY FUNCTIONS FOR GRAPH <----- #
 
-"""
-    Returns an iterator containing all the incoming neighbors 
-    of node of index 'v_index'.
-"""
-function get_in_neighbors(v_index::Int, graph::Graph)
-    node_v = graph.vertices[v_index]
-    is_directed = graph.is_directed
-    neighbors = Int[]
-    in_edges_v = node_v.edges_target
-    for cur_edge in in_edges_v
-        append!(neighbors, [cur_edge.source])
+function get_edgelist(graph::Graph)
+    M = graph.M
+    edgelist = zeros(Int, (M,2))
+    for (j, edge) in enumerate(graph.edges)
+        edgelist[j,1] = edge.source
+        edgelist[j,2] = edge.target
     end
-    return collect(Int, Set(neighbors))
-end
-
-"""
-    Returns an iterator containing all the  outcoming neighbors 
-    of node of index 'v_index'. Independent of network direction.
-"""
-function get_out_neighbors(v_index::Int, graph::Graph)
-    node_v = graph.vertices[v_index]
-    is_directed = graph.is_directed
-    neighbors = Int[]
-    out_edges_v = node_v.edges_source
-    for cur_edge in out_edges_v
-        append!(neighbors, [cur_edge.target])
-    end
-    return collect(Int, Set(neighbors))
+    return edgelist
 end
 
 function copy_graph(graph::Graph)
-    cpy_g = Graph(graph.is_directed)
-    cpy_g.N = graph.N
-    cpy_g.M = graph.M
-    cpy_g.vertices = copy(graph.vertices)
-    cpy_g.edges = copy(graph.edges)
-    cpy_g.int_vproperties = copy(graph.int_vproperties)
-    cpy_g.float_vproperties = copy(graph.float_vproperties)
-    cpy_g.string_vproperties = copy(graph.string_vproperties)
-    cpy_g.int_eproperties = copy(graph.int_eproperties)
-    cpy_g.float_eproperties = copy(graph.float_eproperties)
-    cpy_g.string_eproperties = copy(graph.string_eproperties)
-    return cpy_g
+    edges = get_edgelist(graph)
+    new_graph = graph_from_edgelist(edges, graph.is_directed)
+
+    new_graph.int_vproperties = copy(graph.int_vproperties)
+    new_graph.float_vproperties = copy(graph.float_vproperties)
+    new_graph.string_vproperties = copy(graph.string_vproperties)
+    new_graph.int_eproperties = copy(graph.int_eproperties)
+    new_graph.float_eproperties = copy(graph.float_eproperties)
+    new_graph.string_eproperties = copy(graph.string_eproperties)
+    return new_graph
 end
 

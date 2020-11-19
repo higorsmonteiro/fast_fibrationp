@@ -2,6 +2,8 @@
     This code must be inserted together with 'base_net.jl'.
 =#
 
+##### --------------- ACCESS LOCAL TOPOLOGY  --------------- ########
+
 """
     Returns an array containing the degree for each vertex
     in the given graph.
@@ -24,6 +26,60 @@ function get_degree(graph::Graph, mode::String)
 end
 
 """
+
+"""
+function get_in_neighbors(node::Int, graph::Graph)
+    node_obj = graph.vertices[node]
+
+    # -- edges where 'node' is the target --
+    incoming_edges = node_obj.edges_target
+    incoming_neighbors = Int[]
+    for edge in incoming_edges
+        # fundamental check
+        if edge.target!=node
+            print("BUG. aborted.\n")
+            return
+        end
+        push!(incoming_neighbors, edge.source)
+    end
+    return collect(Set(incoming_neighbors))
+end
+
+"""
+
+"""
+function get_out_neighbors(node::Int, graph::Graph)
+    node_obj = graph.vertices[node]
+
+    # -- edges where 'node' is the source --
+    outcoming_edges = node_obj.edges_source
+    outcoming_neighbors = Int[]
+    for edge in outcoming_edges
+        # fundamental check
+        if edge.source!=node
+            print("BUG. aborted.\n")
+        end
+        push!(outcoming_neighbors, edge.target)
+    end
+    return collect(Set(outcoming_neighbors))
+end
+
+"""
+
+"""
+function get_all_neighbors(node::Int, graph::Graph)
+    incoming_neighbors = get_in_neighbors(node, graph)
+    outcoming_neighbors = get_out_neighbors(node, graph)
+
+    neighbors = Int[]
+    append!(neighbors, incoming_neighbors)
+    append!(neighbors, outcoming_neighbors)
+    return collect(Set(neighbors))
+end
+
+# -------------------------------------------------------------------------- #
+
+"""
     Tarjan's algorithm for finding strongly connected
     components. Recursive.
 
@@ -31,7 +87,7 @@ end
     respectively, the list of components labels, the unique
     component's labels and the number of components.
 """
-function find_strong(graph::Graph)
+function find_strong(graph::Graph, return_dict=false)
     UNVISITED = -1
     N = length(graph.vertices)
 
@@ -49,7 +105,17 @@ function find_strong(graph::Graph)
         end
     end
     unique_labels = collect(Int, Set(low))
-    return low, unique_labels, scount
+    sccs = Dict{Int, Array{Int}}()
+    for v in 1:N
+        if get(sccs, low[v], -1)==-1
+            sccs[low[v]] = Int[]
+        end
+        push!(sccs[low[v]], v)
+    end
+    if return_dict
+        return low, unique_labels, sccs
+    end
+    return low, unique_labels
 end
 
 function dfs_tarjan(at::Int, g::Graph, stack::Array{Int},
@@ -85,39 +151,6 @@ function dfs_tarjan(at::Int, g::Graph, stack::Array{Int},
     return id, scount
 end
 
-"""
-    Two-pass algorithm. Intuitive. Demands a great 
-    deal of memory. Kosajaru's algorithm.
-"""
-function extract_scc(graph::Graph)
-    sets = Array[]
-    for node in graph.vertices
-        reach = BFS(node.index, graph)
-        append!(sets, [reach])
-    end
-
-    sccs = Array[]
-    checked = [ false for j in 1:length(graph.vertices) ]
-    for (j, node) in enumerate(graph.vertices)
-        if checked[j]
-            continue
-        end
-
-        current_scc = Int[]
-        node_reach = sets[j]
-        append!(current_scc, [node.index])
-        checked[node.index] = true
-
-        for k in sets[j]
-            if j in sets[k] && j!=k
-                checked[k] = true
-                append!(current_scc, [k])
-            end
-        end
-        append!(sccs, [current_scc])
-    end
-    return sccs
-end
 
 function dfs_search(graph::Graph)
     N = length(graph.vertices)
@@ -198,15 +231,10 @@ function transpose_graph(graph::Graph)
     end
 end
 
-"""
-    Auxialiary function to identify the root of a tree.
-"""
-function find_root(node::Int, parent::Array{Int})
-    par = parent[node]
+function get_root(node::Int, parent::Array{Int,1})
     r = node
-    while par!=-1
-        r = par
-        par = parent[par]
+    while parent[r]!=-1
+        r = parent[r]
     end
     return r
 end
@@ -214,47 +242,43 @@ end
 """
     Extract the strongly connected components of the graph.
 
-    Returns a list of integer lists. Each list contains the
-    indexes of the nodes belonging to the same component.
+    ...
 """
-function extract_strong(graph::Graph)
+function extract_strong(graph::Graph, return_dict=false)
+    N = graph.N
     color, parent, finished = dfs_search(graph)
-    node_ordering = sortperm(finished, rev=true)
 
+    # Create the tranpose graph from 'graph'.
     graph_t = copy_graph(graph)
     transpose_graph(graph_t)
 
-    N = length(graph_t.vertices)
-    color2 = [-1 for j in 1:N ]
-    dist2 = [-1 for j in 1:N ]
-    parent2 = [-1 for j in 1:N ]
-    finished2 = [-1 for j in 1:N ]
     time = [0]
+    color_t = [-1 for j in 1:N ]
+    dist_t = [-1 for j in 1:N ]
+    parent_t = [-1 for j in 1:N ]
+    finished_t = [-1 for j in 1:N ]
+    # Apply second DFS to 'graph_t' in decreasing order of 'finished'.
+    node_ordering = sortperm(finished, rev=true)
     for u in node_ordering
-        if color2[u]==-1
-            dfs_visit(u, graph_t, time, color2, dist2, parent2, finished2)
+        if color_t[u]==-1
+            dfs_visit(u, graph_t, time, color_t, dist_t, parent_t, finished_t)
         end
-    end
-    
-    # -- Separate SCCs --
-    sccs = Dict{Int, Array{Int}}()
-    node_labels = [-1 for j in 1:N]
-    unique_labels = Int[]
-    for v in 1:N
-        root = find_root(v, parent2)
-        node_labels[v] = root
-        push!(unique_labels, root)
-        if get(sccs, root, -1)==-1
-            sccs[root] = Int[]
-        end
-        push!(sccs[root], v)
     end
 
-    scc_list = Array{Int}[]
-    for key in collect(keys(sccs))
-        push!(scc_list, sccs[key])
+    # Now, each DFS tree in 'parent_t' represents an strongly connected component.
+    scc_trees = Dict{Int, Array{Int}}()
+    node_labels = [-1 for j in 1:N]
+    for u in 1:N
+        root = get_root(u, parent_t)
+        if get(scc_trees, root, -1)==-1
+            scc_trees[root] = Int[]
+        end
+        push!(scc_trees[root], u)
+        node_labels[u] = root
     end
-    unique_labels = collect(Int, Set(unique_labels))
-    return node_labels, unique_labels, length(unique_labels)
-    #return node_labels, scc_list, length(scc_list)
+    unique_labels = collect(Int, Set(node_labels))
+    if return_dict
+        return node_labels, unique_labels, scc_trees
+    end
+    return node_labels, unique_labels
 end

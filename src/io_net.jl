@@ -3,6 +3,30 @@
 =#
 
 """
+    Create graph from edgelist.
+
+    edgelist is an array of dimension M x 2 containing
+    the source and target of each edge.
+
+    The function assumes that the vertices are labeled
+    from 1 to N.
+"""
+function graph_from_edgelist(edgelist::Array{Int, 2}, is_directed::Bool)
+    graph = Graph(is_directed)
+    N = maximum([maximum(edgelist[:,1]), maximum(edgelist[:,2])])
+
+    # -- Create the vertices --
+    for j in 1:N
+        add_node(graph)
+    end
+    # -- Then, build the connections
+    for j in 1:length(edgelist[:,1])
+        add_edge(edgelist[j,1], edgelist[j,2], graph)
+    end
+    return graph
+end
+
+"""
     Given a formatted edgelist file, it returns two objects: a N x 2
     array containing the edgelist with format [[src,tgt], ...] and 
     a array of string arrays containing all the other columns in the file.
@@ -106,7 +130,7 @@ end
 """
 function load_net(fname::String, is_directed::Bool, convert_int=false)
     edges, eprops = process_edgefile(fname, convert_int)
-
+    
     # -- If the nodes indexes are strings, create new indexing --
     if !convert_int
         edges, name_map = create_indexing(edges)
@@ -114,7 +138,7 @@ function load_net(fname::String, is_directed::Bool, convert_int=false)
     graph = graph_from_edgelist(edges, is_directed)
 
     # -- Save the original string indexes of nodes as 'node_name' vertex property --
-    N = length(graph.vertices)
+    N = graph.N
     nodes_name = [ "" for j in 1:N ]
     if !convert_int
         keys_name = collect(keys(name_map))

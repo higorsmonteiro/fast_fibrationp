@@ -165,23 +165,23 @@ end
 
 """
     Check if the given SCC receives or not input from another 
-    SCC components in the 'graph'.
+    components in the 'graph'.
 
     the field 'have_input' of 'strong' is modified to 'true'
     if the component receives external information. Otherwise,
-    'have_input' maintains its default.
+    'have_input' maintains its default ('false').
 """
 function check_input(strong::StrongComponent, graph::Graph)
-    aux = -1
-    for node in strong.nodes
-        input_nodes = get_in_neighbors(node, graph)
-        for in_neighbor in input_nodes
-            if in_neighbor in strong.nodes
-                aux = 1
+    from_out = false
+    for u in strong.nodes
+        input_nodes = get_in_neighbors(u, graph)
+        for w in input_nodes
+            if w in strong.nodes
+                from_out = false
             else
-                aux = -1
+                from_out = true
             end
-            if aux==-1
+            if from_out
                 strong.have_input = true
                 break
             end
@@ -190,6 +190,7 @@ function check_input(strong::StrongComponent, graph::Graph)
             break
         end
     end
+    return
 end
 
 """
@@ -203,15 +204,16 @@ function classify_strong(strong::StrongComponent, graph::Graph)
             If it doesn't receive any external input, then we
             must check if it is an isolated self-loop node.
         """
-        if strong.number_nodes==1
+        if length(strong.nodes)==1
             in_neighbors = get_in_neighbors(strong.nodes[1], graph)
             if length(in_neighbors)==0
                 strong.type = 1
             else
-                strong.type = 2 # Isolated autorregulated node.
+                strong.type = 2 # Isolated self-loop node.
             end
         else
             strong.type = 1 # SCC does not have external input.
         end
     end
+    return
 end
