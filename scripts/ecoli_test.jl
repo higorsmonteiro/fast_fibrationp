@@ -19,8 +19,8 @@ end
 g = netx.graph_from_edgelist(fmt_edges, true)
 netx.set_edges_properties("edgetype", edgetype, g)
 
-partition = netx.fast_fibration(g)
-#partition = netx.minimal_coloring(g)
+#partition = netx.fast_fibration(g)
+partition = netx.minimal_coloring(g)
 
 # Count the number of nontrivial fibers
 count = []
