@@ -220,19 +220,11 @@ end
 function initialize_coloring(graph::Graph)
     N = length(graph.vertices)
 
-    scc_info = find_strong(graph)
+    #scc_info = find_strong(graph)
+    scc_info = extract_strong(graph, true)
     node_labels = scc_info[1]
     unique_labels = scc_info[2]
-    N_scc = scc_info[3]
-
-    # -- Initialize dictionary to hold the components' nodes -- 
-    components = Dict{Int, Array{Int}}()
-    for l in unique_labels
-        components[l] = Int[]
-    end
-    for (j, label) in enumerate(node_labels)
-        push!(components[label], j)
-    end
+    components = scc_info[3]
 
     # -- 'sccs' holds a list of 'StrongComponent' objects --
     sccs = StrongComponent[]
