@@ -66,7 +66,7 @@ end
 """
 function do_measure(path::String, nsamples::Int, prefix::String)
     ntypes = Int[1,2,4,8]
-    sizes = Int[512]
+    sizes = Int[512, 1024, 2048, 4096, 8192, 16384]
 
     time_dicts = [ Dict{Int, Array{Float64}}() for i in 1:length(ntypes) ]
     space_dicts = [ Dict{Int, Array{Float64}}() for i in 1:length(ntypes) ]
