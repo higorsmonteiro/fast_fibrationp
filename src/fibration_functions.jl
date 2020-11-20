@@ -258,10 +258,8 @@ function initialize_coloring(graph::Graph)
 
     # -- Define the pivot set queue and fiber pointer for each
     # -- node. Also push the defined classes to the queue.
-    pivot_queue = Fiber[]
     fiber_index = [ -1 for j in 1:N ]
     for (index, class) in enumerate(partition)
-        push!(pivot_queue, copy_fiber(class))
         for v in class.nodes
             fiber_index[v] = index
         end
@@ -361,8 +359,8 @@ function minimal_coloring(graph::Graph, eprop_name="edgetype")
     fiber_index = graph.int_vproperties["fiber_index"]
     # -- Number of color before and after refinement --
     ncolor_new = -1
-    ncolor_old = length(collect(Int, Set(fiber_index)))
-
+    #ncolor_old = length(collect(Int, Set(fiber_index)))
+    ncolor_old = maximum(fiber_index)
     # -- Refinement process through coloring --
     while true
         ncolor_new = s_coloring(graph, ncolor_old, num_edgetype)
