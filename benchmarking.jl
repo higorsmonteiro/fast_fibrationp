@@ -38,10 +38,33 @@ function process_samples_ffp(N::Int, ntype::Int, nsamples::Int, path::String)
     return runtime, memory
 end
 
+function process_samples_mbc(N::Int, ntype::Int, nsamples::Int, path::String)
+    kmean_arr = Float64[ 1.0, 2.0, 4.0, 8.0 ]
+    runtime = [ Float64[ 0.0 for j in 1:nsamples ] for i in 1:4 ]
+    memory = [ Float64[ 0.0 for j in 1:nsamples ] for i in 1:4 ]
+
+    print("Size $N\n")
+    for (j, k_mean) in enumerate(kmean_arr)
+        print("mean degree = $(k_mean)\n")
+        for m in 1:nsamples
+            print("$m ")
+            g = open_random_net(path, N, k_mean, ntype, m)
+            b = @benchmarkable netx.minimal_coloring($g)
+            tune!(b)
+            res = minimum(run(b))
+            g = netx.Graph(true) # check garbage collector
+            runtime[j][m] = res.time*1e-9 # seconds
+            memory[j][m] = res.memory*1e-6 # megabytes
+        end
+        print("\n")
+    end
+    return runtime, memory
+end
+
 """
 
 """
-function do_measure(path::String, nsamples::Int, fout::String)
+function do_measure(path::String, nsamples::Int, prefix::String)
     ntypes = Int[1,2,4,8]
     sizes = Int[512]
 
@@ -53,7 +76,14 @@ function do_measure(path::String, nsamples::Int, fout::String)
         for N in sizes
             time_dict[N] = Float64[ 0.0, 0.0, 0.0, 0.0 ]
             space_dict[N] = Float64[ 0.0, 0.0, 0.0, 0.0 ]
-            time_measures, space_measures = process_samples_ffp(N, nt, nsamples, path)
+            if prefix=="ffp"
+                time_measures, space_measures = process_samples_ffp(N, nt, nsamples, path)
+            elseif prefix=="mbc"
+                time_measures, space_measures = process_samples_mbc(N, nt, nsamples, path)
+            else
+                print("invalid prefix\n")
+                return
+            end
             for n in 1:4
                 time_dict[N][n] = mean(time_measures[n])
                 space_dict[N][n] = mean(space_measures[n])
@@ -64,7 +94,7 @@ function do_measure(path::String, nsamples::Int, fout::String)
     for (k, nt) in enumerate(ntypes)
         time_dict = time_dicts[k]
         space_dict = space_dicts[k]
-        open("teste_$(nt).txt", "w") do f
+        open("$(prefix)_$(nt).txt", "w") do f
             for N in sizes
                 write(f,"$N")
                 for (k, nt) in enumerate(ntypes)
