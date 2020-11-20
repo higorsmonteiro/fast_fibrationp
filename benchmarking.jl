@@ -27,7 +27,7 @@ function process_samples_ffp(N::Int, ntype::Int, nsamples::Int, path::String)
             print("$m ")
             g = open_random_net(path, N, k_mean, ntype, m)
             b = @benchmarkable netx.fast_fibration($g)
-            tune!(b)
+            #tune!(b)
             res = minimum(run(b))
             g = netx.Graph(true) # check garbage collector
             runtime[j][m] = res.time*1e-9 # seconds
@@ -50,7 +50,7 @@ function process_samples_mbc(N::Int, ntype::Int, nsamples::Int, path::String)
             print("$m ")
             g = open_random_net(path, N, k_mean, ntype, m)
             b = @benchmarkable netx.minimal_coloring($g)
-            tune!(b)
+            #tune!(b)
             res = minimum(run(b))
             g = netx.Graph(true) # check garbage collector
             runtime[j][m] = res.time*1e-9 # seconds
@@ -68,11 +68,9 @@ function do_measure(path::String, nsamples::Int, prefix::String)
     ntypes = Int[1,2,4,8]
     sizes = Int[512, 1024, 2048, 4096, 8192, 16384]
 
-    time_dicts = [ Dict{Int, Array{Float64}}() for i in 1:length(ntypes) ]
-    space_dicts = [ Dict{Int, Array{Float64}}() for i in 1:length(ntypes) ]
     for (k, nt) in enumerate(ntypes)
-        time_dict = time_dicts[k]
-        space_dict = space_dicts[k]
+        time_dict = Dict{Int, Array{Float64}}()
+        space_dict = Dict{Int, Array{Float64}}()
         for N in sizes
             time_dict[N] = Float64[ 0.0, 0.0, 0.0, 0.0 ]
             space_dict[N] = Float64[ 0.0, 0.0, 0.0, 0.0 ]
@@ -89,16 +87,12 @@ function do_measure(path::String, nsamples::Int, prefix::String)
                 space_dict[N][n] = mean(space_measures[n])
             end
         end
-    end
-
-    for (k, nt) in enumerate(ntypes)
-        time_dict = time_dicts[k]
-        space_dict = space_dicts[k]
+        # -- Save dictionary to file --
         open("$(prefix)_$(nt).txt", "w") do f
             for N in sizes
                 write(f,"$N")
-                for (k, nt) in enumerate(ntypes)
-                    write(f, "\t$(time_dict[N][k])\t$(space_dict[N][k])")
+                for (n, nt) in enumerate(ntypes)
+                    write(f, "\t$(time_dict[N][n])\t$(space_dict[N][n])")
                 end
                 write(f,"\n")
             end
