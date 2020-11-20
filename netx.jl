@@ -1,9 +1,10 @@
 module netx
 
-include("module_pieces/base_net.jl")
-include("module_pieces/topology.jl")
-include("module_pieces/generation.jl")
-include("module_pieces/fiber.jl")
-include("module_pieces/fibration_functions.jl")
+include("src/base_net.jl")
+include("src/io_net.jl")
+include("src/topology.jl")
+include("src/generation.jl")
+include("src/fiber.jl")
+include("src/fibration_functions.jl")
 
 end
