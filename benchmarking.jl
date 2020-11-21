@@ -43,7 +43,7 @@ function process_samples_mbc(N::Int, ntype::Int, nsamples::Int, path::String)
     runtime = [ Float64[ 0.0 for j in 1:nsamples ] for i in 1:4 ]
     memory = [ Float64[ 0.0 for j in 1:nsamples ] for i in 1:4 ]
 
-    print("Size $N\n")
+    print("Size $N - Type $(ntype)\n")
     for (j, k_mean) in enumerate(kmean_arr)
         print("mean degree = $(k_mean)\n")
         for m in 1:nsamples
@@ -64,8 +64,8 @@ end
 """
 
 """
-function do_measure(path::String, nsamples::Int, prefix::String)
-    ntypes = Int[1,2,4,8]
+function do_measure(path::String, nsamples::Int, prefix::String, ntypes=Int[1,2,4,8])
+    #ntypes = Int[1,2,4,8]
     sizes = Int[512, 1024, 2048, 4096, 8192, 16384]
 
     for (k, nt) in enumerate(ntypes)
