@@ -65,9 +65,9 @@ end
 
 """
 function do_measure(path::String, nsamples::Int, prefix::String, ntypes=Int[1,2,4,8])
-    #ntypes = Int[1,2,4,8]
     sizes = Int[512, 1024, 2048, 4096, 8192, 16384]
 
+    GC.enable(true)
     for (k, nt) in enumerate(ntypes)
         time_dict = Dict{Int, Array{Float64}}()
         space_dict = Dict{Int, Array{Float64}}()
@@ -91,7 +91,7 @@ function do_measure(path::String, nsamples::Int, prefix::String, ntypes=Int[1,2,
         open("$(prefix)_$(nt).txt", "w") do f
             for N in sizes
                 write(f,"$N")
-                for (n, nt) in enumerate(ntypes)
+                for n in 1:4
                     write(f, "\t$(time_dict[N][n])\t$(space_dict[N][n])")
                 end
                 write(f,"\n")
@@ -100,3 +100,7 @@ function do_measure(path::String, nsamples::Int, prefix::String, ntypes=Int[1,2,
     end
 end
 
+path_to = "ER/"
+prefix = "mbc"
+ntypes = Int[1]
+do_measure(path_to, 7, prefix, ntypes)
