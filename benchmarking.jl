@@ -65,7 +65,7 @@ end
 
 """
 function do_measure(path::String, nsamples::Int, prefix::String, ntypes=Int[1,2,4,8])
-    sizes = Int[512, 1024, 2048, 4096, 8192, 16384]
+    sizes = Int[128, 256, 512, 1024, 2048]
 
     GC.enable(true)
     for (k, nt) in enumerate(ntypes)
@@ -102,5 +102,5 @@ end
 
 path_to = "ER/"
 prefix = "mbc"
-ntypes = Int[1]
-do_measure(path_to, 7, prefix, ntypes)
+ntypes = Int[1,2,4,8]
+do_measure(path_to, 10, prefix, ntypes)
