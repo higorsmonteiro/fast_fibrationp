@@ -217,6 +217,11 @@ end
 
 # =================== BALANCED COLORING ===================== #
 
+"""
+    Initialization function for the minimal balancing coloring. Differently
+    from the fast fibration algorithm, the isolated self-loop nodes can be put
+    in different classes already in the initial partition.
+"""
 function initialize_coloring(graph::Graph)
     N = length(graph.vertices)
 
@@ -244,15 +249,10 @@ function initialize_coloring(graph::Graph)
 
         if strong.type == 0
             insert_nodes(strong.nodes, partition[1])
-        elseif strong.type == 1 
+        else strong.type == 1 
             new_fiber = Fiber()
             insert_nodes(strong.nodes, new_fiber)
             append!(partition, [new_fiber])
-        else
-            new_fiber = Fiber()
-            insert_nodes(strong.nodes, new_fiber)
-            append!(autopivot, [new_fiber])
-            insert_nodes(strong.nodes, partition[1])
         end
     end
 
