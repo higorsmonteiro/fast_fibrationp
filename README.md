@@ -12,7 +12,7 @@ To find the fibration partitioning of a given network it is necessary only the i
 and the types of each edge (in case the edges are multidimensional). For this, the network must be parsed as an **edgelist file**. For
 instance, let's consider the graph below where the edges can assume two possible values: 'positive' or 'negative'.
 
-<img src="small_example.png" width="600" /> ![Small example](small_example.png)
+<img src="small_example.png" width="500" />
 
 The edgefile for this graph, called `net.txt` should follow the format below
 
