@@ -26,7 +26,8 @@ function get_degree(graph::Graph, mode::String)
 end
 
 """
-
+    Returns an array containing the indexes of each incoming neighbor of
+    'node' in 'graph'.
 """
 function get_in_neighbors(node::Int, graph::Graph)
     node_obj = graph.vertices[node]
@@ -46,7 +47,8 @@ function get_in_neighbors(node::Int, graph::Graph)
 end
 
 """
-
+    Returns an array containing the indexes of each outcoming neighbor of
+    'node' in 'graph'.
 """
 function get_out_neighbors(node::Int, graph::Graph)
     node_obj = graph.vertices[node]
@@ -65,7 +67,8 @@ function get_out_neighbors(node::Int, graph::Graph)
 end
 
 """
-
+    Returns an array containing the indexes of each neighbor (in and out) 
+    of 'node' in 'graph'.
 """
 function get_all_neighbors(node::Int, graph::Graph)
     incoming_neighbors = get_in_neighbors(node, graph)
@@ -78,114 +81,14 @@ function get_all_neighbors(node::Int, graph::Graph)
 end
 
 # -------------------------------------------------------------------------- #
-
 """
-    Tarjan's algorithm for finding strongly connected
-    components. Recursive.
+    Breadth-first search from 'source' in 'graph'. Returns three arrays:
+    'color', 'dist' and 'parent'.
 
-    Given 'graph' the function returns a tuple containing,
-    respectively, the list of components labels, the unique
-    component's labels and the number of components.
+    'color' -> visited status of the node (1=visited)
+    'dist' -> shortest distance between 'source' and the current node.
+    'parent' -> parent of each node in the tree from 'source'.
 """
-function find_strong(graph::Graph, return_dict=false)
-    UNVISITED = -1
-    N = length(graph.vertices)
-
-    id = 0
-    scount = 0
-
-    stack = Int[]
-    low = zeros(Int, N)
-    ids = [ UNVISITED for n in 1:N ]
-    onstack = [ false for n in 1:N ]
-
-    for i in 1:N
-        if ids[i] == UNVISITED
-            id, scount = dfs_tarjan(i, graph, stack, low, ids, onstack, id, scount)
-        end
-    end
-    unique_labels = collect(Int, Set(low))
-    sccs = Dict{Int, Array{Int}}()
-    for v in 1:N
-        if get(sccs, low[v], -1)==-1
-            sccs[low[v]] = Int[]
-        end
-        push!(sccs[low[v]], v)
-    end
-    if return_dict
-        return low, unique_labels, sccs
-    end
-    return low, unique_labels
-end
-
-function dfs_tarjan(at::Int, g::Graph, stack::Array{Int},
-                    low::Array{Int}, ids::Array{Int},
-                    onstack::Array{Bool}, id::Int, scount::Int)
-    UNVISITED = -1
-    push!(stack, at)
-    onstack[at] = true
-    ids[at] = id
-    low[at] = id
-    id += 1
-
-    for at_out in get_out_neighbors(at, g)
-        if ids[at_out] == UNVISITED
-            id, scount = dfs_tarjan(at_out, g, stack, low, ids, onstack, id, scount)
-        end
-        if onstack[at_out]
-            low[at] = minimum([low[at], low[at_out]])
-        end
-    end
-
-    if ids[at] == low[at]
-        while true
-            node = pop!(stack)
-            onstack[node] = false
-            low[node] = ids[at]
-            if node == at
-                break
-            end
-        end
-        scount += 1
-    end
-    return id, scount
-end
-
-
-function dfs_search(graph::Graph)
-    N = length(graph.vertices)
-    color = [-1 for j in 1:N ]
-    dist = [-1 for j in 1:N ]
-    parent = [-1 for j in 1:N ]
-    finished = [-1 for j in 1:N ]
-
-    time = [0]
-    for u in 1:N
-        if color[u]==-1
-            dfs_visit(u, graph, time, color, dist, parent, finished)
-        end
-    end
-    return color, parent, finished
-end
-
-function dfs_visit(u::Int, graph::Graph, time::Array{Int},
-                   color::Array{Int}, dist::Array{Int},
-                   parent::Array{Int}, finished::Array{Int})
-    time[1] += 1
-    dist[u] = time[1]
-    color[u] = 0
-    u_adj = get_out_neighbors(u, graph)
-    for v in u_adj
-        if color[v]==-1
-            parent[v] = u
-            dfs_visit(v, graph, time, color, dist, parent, finished)
-        end
-    end
-    color[u] = 1
-    time[1] += 1
-    finished[u] = time[1]
-end
-
 function bfs_search(source::Int, graph::Graph)
     N = length(graph.vertices)
     color = [-1 for j in 1:N]
@@ -215,6 +118,9 @@ function bfs_search(source::Int, graph::Graph)
     return color, dist, parent
 end
 
+"""
+    Invert the direction of all edges of 'graph'.
+"""
 function transpose_graph(graph::Graph)
     edges = graph.edges
     for edge in edges
@@ -237,6 +143,24 @@ function get_root(node::Int, parent::Array{Int,1})
         r = parent[r]
     end
     return r
+end
+
+function dfs_visit(u::Int, graph::Graph, time::Array{Int},
+                   color::Array{Int}, dist::Array{Int},
+                   parent::Array{Int}, finished::Array{Int})
+    time[1] += 1
+    dist[u] = time[1]
+    color[u] = 0
+    u_adj = get_out_neighbors(u, graph)
+    for v in u_adj
+        if color[v]==-1
+            parent[v] = u
+            dfs_visit(v, graph, time, color, dist, parent, finished)
+        end
+    end
+    color[u] = 1
+    time[1] += 1
+    finished[u] = time[1]
 end
 
 """
