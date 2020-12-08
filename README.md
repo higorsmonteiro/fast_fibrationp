@@ -12,21 +12,21 @@ To find the fibration partitioning of a given network it is necessary only the i
 and the types of each edge (in case the edges are multidimensional). For this, the network must be parsed as an **edgelist file**. For
 instance, let's consider the graph below where the edges can assume two possible values: 'positive' or 'negative'.
 
-![Small example](small_example.pdf)
+![Small example](../master/small_example.png)
 
 The edgefile for this graph, called `net.txt` should follow the format below
 
-> 1 2 positive
-> 2 1 positive
-> 3 1 positive
-> 3 4 positive
-> 4 2 negative
-> 4 3 positive
-> 4 5 positive
-> 6 3 negative
-> 7 4 negative
-> 8 6 positive
-> 8 7 positive
+> 1 2 positive<br/>
+> 2 1 positive<br/>
+> 3 1 positive<br/>
+> 3 4 positive<br/>
+> 4 2 negative<br/>
+> 4 3 positive<br/>
+> 4 5 positive<br/>
+> 6 3 negative<br/>
+> 7 4 negative<br/>
+> 8 6 positive<br/>
+> 8 7 positive<br/>
 
 Thus, to extract the fibers of the network provided by this edgefile, we run the 
 following
@@ -35,8 +35,18 @@ following
 include("fsym.jl")
 import .fsym
 
-fsym.load_net("net.txt", true)
-...
+g, fmt_eprops = fsym.load_net("net.txt", true)
+
+
+edgetype = Int[]
+map_regulation = Dict([("positive", 1) ("negative", 2)])
+for reg in fmt_eprops["Column 1"]
+    push!(edgetype, map_regulation[reg])
+end
+fsym.set_edges_properties("edgetype", edgetype, g)
+
+
+partition = fsym.fast_fibration(g)
 ```
 
 
