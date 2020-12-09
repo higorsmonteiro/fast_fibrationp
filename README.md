@@ -28,6 +28,11 @@ The edgefile for this graph, called `net.txt` should follow the format below
 > 8 6 positive<br/>
 > 8 7 positive<br/>
 
+In this file, the third column refers to the possible values of each edge. There is no restriction on the specific
+format of its values as long as each different string represent a different edge type. For the first (source) and 
+second (target) columns the node labels must be inside the interval \[1,N\] where N is the total number of nodes in
+the graph.
+
 Thus, to extract the fibers of the network provided by this edgefile, we run the 
 following
 
