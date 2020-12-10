@@ -52,6 +52,6 @@ fsym.set_edges_properties("edgetype", edgetype, g)
 partition = fsym.fast_fibration(g)
 ```
 
-
+Where `partition` is a container holding `Fiber` structures. To access the nodes belonging to a specific fiber, we can check `.nodes`, like in `partition[1].nodes` for the first element of the container returned.
 
 
