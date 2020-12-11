@@ -41,17 +41,21 @@ include("fsym.jl")
 import .fsym
 
 g, fmt_eprops = fsym.load_net("net.txt", true)
-
-edgetype = Int[]
-map_regulation = Dict([("positive", 1) ("negative", 2)])
-for reg in fmt_eprops["Column 1"]
-    push!(edgetype, map_regulation[reg])
-end
-fsym.set_edges_properties("edgetype", edgetype, g)
-
 partition = fsym.fast_fibration(g)
 ```
 
-Where `partition` is a container holding `Fiber` structures. To access the nodes belonging to a specific fiber, we can check `.nodes`, like in `partition[1].nodes` for the first element of the container returned.
+Where `partition` is a container holding `Fiber` structures. To access the nodes belonging to a specific fiber, we can check `.nodes`, like in `partition[1].nodes` for the first element of the container returned. To get the information about the number of fibers, total number of partition 
+elements and which nodes inside each `partition` element, we can add the following two lines to the code above:
+
+```julia
+fiber_count, all_classes, v_per_fiber = fsym.count_fiber(partition, g)
+print("Non-trivial fibers: $fiber_count, All partition elements: $all_classes\n $(v_per_fiber)\n")
+```
+
+from which we obtain the following output for the edgefile `net.txt` above:
+```shell
+Non-trivial fibers: 2, All partition elements: 6
+ Array{String,N} where N[["2"], ["8"], ["6", "7"], ["4", "3"], ["5"], ["1"]]
+```
 
 
