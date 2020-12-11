@@ -118,6 +118,22 @@ function bfs_search(source::Int, graph::Graph)
     return color, dist, parent
 end
 
+function dfs_search(graph::Graph)
+    N = length(graph.vertices)
+    color = [-1 for j in 1:N ]
+    dist = [-1 for j in 1:N ]
+    parent = [-1 for j in 1:N ]
+    finished = [-1 for j in 1:N ]
+
+    time = [0]
+    for u in 1:N
+        if color[u]==-1
+            dfs_visit(u, graph, time, color, dist, parent, finished)
+        end
+    end
+    return color, parent, finished
+end
+
 """
     Invert the direction of all edges of 'graph'.
 """

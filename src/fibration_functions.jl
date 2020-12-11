@@ -391,3 +391,19 @@ function minimal_coloring(graph::Graph, eprop_name="edgetype")
     end
     return partition
 end
+
+function count_fiber(partition::Array{Fiber}, graph::Graph)
+    # Count the number of nontrivial fibers
+    node_name = graph.string_vproperties["node_name"]
+    
+    count = []
+    nodes_in_fiber = Array{String}[]
+    for fiber in partition
+        if length(fiber.nodes)>1
+            push!(count, fiber.index)
+        end
+        fmt_nodes = [ node_name[j] for j in fiber.nodes ]
+        append!(nodes_in_fiber, [fmt_nodes])
+    end
+    return length(count), length(partition), nodes_in_fiber
+end

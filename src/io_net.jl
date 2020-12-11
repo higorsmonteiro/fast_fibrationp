@@ -170,43 +170,5 @@ function load_net(fname::String, is_directed::Bool, convert_int=false, etype_col
     end
     set_edges_properties("edgetype", int_edgetypes, graph)
 
-
-
-end
-
-"""
-    Read an edgelist file and returns a graph structure.
-
-    'fname' refers to the file name holding the edgelist.
-
-    If there is extra columns holding edge metadata, then 
-    these properties will be included as a String edge property,
-    in 'string_eproperties'.
-"""
-function load_net(fname::String, is_directed::Bool, convert_int=false)
-    edges, eprops = process_edgefile(fname, convert_int)
-    
-    # -- If the nodes indexes are strings, create new indexing --
-    if !convert_int
-        edges, name_map = create_indexing(edges)
-    end
-    graph = graph_from_edgelist(edges, is_directed)
-
-    # -- Save the original string indexes of nodes as 'node_name' vertex property --
-    N = graph.N
-    nodes_name = [ "" for j in 1:N ]
-    if !convert_int
-        keys_name = collect(keys(name_map))
-        for key in keys_name
-            nodes_name[name_map[key]]*=key
-        end
-        set_vertices_properties("node_name", nodes_name, graph)
-    end
-
-    fmt_eprops = Dict{String, Array{String}}()
-    if length(eprops[1])!=0
-        col_names = [ "Column $j" for j in 1:length(eprops[1]) ]
-        fmt_eprops = process_eprops(eprops, col_names)
-    end
     return graph, fmt_eprops
 end
