@@ -120,6 +120,61 @@ function create_indexing(edges::Array{String,2})
 end
 
 """
+    Read edgelist, create and prepare the graph for the application of the fast 
+    fibration algorithm.
+
+    The expected edgelist has 3 columns: the source column, the target column and
+    the edgetype column.
+
+    The source and target must be integers ranging from 1 to N, where N is the total
+    number of nodes of the graph. The third column can be strings with the unique
+    values for each type. These edgetypes will be set as edge integer properties 
+    ranging from 1 to K, where K is the total number of unique types.
+
+    Returns a graph object 'graph' containing the integer edge property called
+    'edgetype'.
+"""
+function load_net(fname::String, is_directed::Bool, convert_int=false, etype_col="Column 1")
+    edges, eprops = process_edgefile(fname, convert_int)
+    # -- if the source and target columns need to be transformed to the interval 1 to
+    # -- N, then we create a mapping 'name_map' for each unique value of the nodes.
+    if !convert_int
+        edges, name_map = create_indexing(edges)
+    end
+    # -- Save the original string indexes of nodes as 'node_name' vertex property --
+    graph = graph_from_edgelist(edges, is_directed)
+    N = graph.N
+    nodes_name = [ "" for j in 1:N ]
+    if !convert_int
+        keys_name = collect(keys(name_map))
+        for key in keys_name
+            nodes_name[name_map[key]]*=key
+        end
+        set_vertices_properties("node_name", nodes_name, graph)
+    end
+
+    if length(eprops[1])!=0
+        col_names = [ "Column $j" for j in 1:length(eprops[1]) ]
+        fmt_eprops = process_eprops(eprops, col_names)
+    end
+
+    edgetype_str = collect(String, Set(fmt_eprops[etype_col]))
+    edgetype_map = Dict{String, Int}()
+    for (j, value) in enumerate(edgetype_str)
+        edgetype_map[value] = j 
+    end
+
+    int_edgetypes = Int[]
+    for (j, etype_str) in enumerate(fmt_eprops[etype_col])
+        push!(int_edgetypes, edgetype_map[etype_str])
+    end
+    set_edges_properties("edgetype", int_edgetypes, graph)
+
+
+
+end
+
+"""
     Read an edgelist file and returns a graph structure.
 
     'fname' refers to the file name holding the edgelist.
