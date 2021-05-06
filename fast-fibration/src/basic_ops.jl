@@ -53,13 +53,21 @@ function add_edge(src, tgt, graph::Graph)
 end
 
 """
-    Check if the edge(i,j) already exists in the network.
-    If the network is directed, then we check for i->j, while
-    for the undirected, i<->j.
+    Check if the edge(src,tgt) already exists in the network.
+    If the network is directed, then we check for src->tgt, while
+    for the undirected, src<->tgt.
+
+    Args:
+        src:
+            Source vertex of the searched edge.
+        tgt:
+            Target vertex of the searched edge.
+        graph:
+        'Graph' structure where the vertices and edges are placed.
 """
-function is_edge(i, j, graph::Graph)
-    node_i = graph.vertices[i]
-    node_j = graph.vertices[j]
+function is_edge(src, tgt, graph::Graph)
+    node_i = graph.vertices[src]
+    node_j = graph.vertices[tgt]
     is_directed = graph.is_directed
 
     if is_directed
@@ -89,6 +97,12 @@ end
 """
     If the network is directed, returns outcoming neighbors.
     Otherwise, returns all neighbors.
+
+    Args:
+        v_index:
+            Vertex for which we want to retrieve the neighbors.
+        graph:
+            'Graph' structure where the vertices and edges are placed.
 """
 function get_all_neighbors_aware(v_index::Int, graph::Graph)
     node_v = graph.vertices[v_index]
@@ -109,6 +123,14 @@ end
 
 # -----> COPY FUNCTIONS FOR GRAPH <----- #
 
+"""
+    Returns a (M,2) matrix representing the edgelist of the 
+    parsed 'graph'.
+
+    Args:
+        graph:
+            'Graph' structure where the vertices and edges are placed.
+"""
 function get_edgelist(graph::Graph)
     M = graph.M
     edgelist = zeros(Int, (M,2))
