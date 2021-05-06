@@ -1,4 +1,4 @@
-name = "fast-fibration"
+name = "FastFibration"
 uuid = "501a2132-3883-4e33-9912-228908da80c5"
 authors = ["higorsmonteiro <higormonteiros@gmail.com> and contributors"]
 version = "0.1.0"

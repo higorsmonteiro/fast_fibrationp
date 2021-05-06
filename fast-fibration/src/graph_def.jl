@@ -5,7 +5,13 @@
     -------------------------------------------------------------------
 """
 
-# -- Define an edge --
+"""
+    Defines the structure for an edge of a graph. It is defined by its
+    'index'{Int}, 'source'{Int} and 'target'{Int}.
+
+    'source' and 'target' refers to the node at the tail of the edge and
+    the node of the head of the edge, respectively.
+"""
 mutable struct Edge
     index::Int
     source::Int
@@ -16,7 +22,10 @@ mutable struct Edge
     end
 end
 
-# -- Define a Vertex --
+"""
+    Defines the structure for a vertex/node of a graph. It is defined by its
+    'index'{Int}, 'edges_source'{Array{Edge}} and 'edges_target'{Array{Edge}}.
+"""
 mutable struct Vertex
     index::Int
     edges_source::Array{Edge}
@@ -28,7 +37,13 @@ mutable struct Vertex
     end
 end
 
-# -- Define a graph structure -- 
+"""
+    Graph struct to define graph structures.
+
+    is_directed:
+        {true, false} -> If true the graph is defined as directed,
+        otherwise it is defined as directed.
+"""
 mutable struct Graph
     N::Int
     M::Int

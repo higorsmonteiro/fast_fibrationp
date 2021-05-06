@@ -1,5 +1,6 @@
-module fast-fibration
+module FastFibration
 
-# Write your package code here.
+include("graph_def.jl")
+include("graph_prop.jl")
 
 end
