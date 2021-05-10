@@ -2,9 +2,6 @@
     Utility functions to handle I/O graph from edgefiles.
 =#
 
-using CSV
-using DataFrames
-
 """
     Create graph from CSV file.
 
@@ -15,9 +12,10 @@ using DataFrames
 
     Args:
         file_path:
-
+            String containing the path to the CSV file.
         is_directed:
-
+            {true, false} boolean value to signal whether the
+            network is directed(true) or undirected(false).
 """
 function graph_from_csv(file_path::String, is_directed::Bool)
     df = CSV.File(file_path) |> DataFrame
