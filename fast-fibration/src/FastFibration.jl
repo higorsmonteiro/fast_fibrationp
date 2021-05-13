@@ -11,5 +11,6 @@ include("basic_ops.jl")
 include("io_ops.jl")
 include("topology.jl")
 include("generation.jl")
+include("fibration_functions.jl")
 
 end
