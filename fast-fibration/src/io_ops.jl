@@ -5,8 +5,8 @@
 """
     Create graph from CSV file.
 
-    The file must contain as header the columns: 'Source', 
-    'Target' and 'Type'. The indexes of the vertices must be
+    The file must contain as header the columns: 'Source', 'Target' 
+    and (optional)'Type'. The indexes of the vertices must be
     integers and withing the range [1,N], where N is the total
     number of vertices in the graph.
 
@@ -30,17 +30,32 @@ function graph_from_csv(file_path::String, is_directed::Bool)
     for j in 1:length(df.Source)
         add_edge(df.Source[j], df.Target[j], graph)
     end
-    # Then, add as property the type of each edge.
-    set_edges_properties("edge_type", df.Type, graph)
+    if "Type" in names(df)
+        if typeof(df.Type[1])==Int
+            set_edges_properties("edgetype", df.Type, graph)
+        # Converts the string types to integer type.
+        elseif typeof(df.Type[1])==String
+            unique_types = collect(Set(df.Type))
+            label_map = Dict{String, Int}()
+            for j in 1:length(unique_types)
+                label_map[unique_types[j]] = j
+            end
+            new_int_edgeprop = [label_map[j] for j in df.Type]
+            set_edges_properties("edgetype", new_int_edgeprop, graph)
+            set_edges_properties("edgetype", df.Type, graph)
+        else
+            error("Format of 'Type' column is not accepted.")
+        end
+    else
+        set_edges_properties("edgetype", [1 for i in 1:N], graph)
+    end
     return graph
 end
 
 """
     Create graph from edgelist.
-
     edgelist is an array of dimension M x 2 containing
     the source and target of each edge.
-
     The function assumes that the vertices are labeled
     from 1 to N.
 """
