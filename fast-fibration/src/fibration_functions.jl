@@ -260,7 +260,7 @@ function fast_fibration(graph::Graph, eprop_name="edgetype")
         pivot_set = pop!(pivot_queue)
         fast_partitioning(graph, pivot_set, partition, pivot_queue, number_edgetype)
     end
-    return partition
+    return partition, pivot_queue
 end
 
 function count_fiber(partition::Array{Fiber}, graph::Graph)

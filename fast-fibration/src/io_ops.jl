@@ -16,6 +16,11 @@
         is_directed:
             {true, false} boolean value to signal whether the
             network is directed(true) or undirected(false).
+    Return:
+        graph:
+            'Graph' structure representing the CSV edgelist file. This
+            object contains at least the integer edge property called
+            'edgetype'.
 """
 function graph_from_csv(file_path::String, is_directed::Bool)
     df = CSV.File(file_path) |> DataFrame
