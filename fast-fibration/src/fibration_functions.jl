@@ -103,7 +103,62 @@ function enqueue_splitted(new_classes::Array{Fiber}, pivot_queue::Array{Fiber})
 end
 
 """
-    Generate a input-set stable partition with respect to the pivot set.    
+    Returns a list of indexes of the possible input set unstable classes of the
+    'graph'. Also, it returns a dictionary which maps a node to its input set. This
+    function is called by the 'fast_partitioning' function.
+
+    Args:
+        graph:
+            'Graph' structure storing the vertices and edges' objects.
+        pivot:
+            'Fiber' object representing the current pivot set which is used for the
+            splitting process.
+        partition:
+                
+        number_edgetype:
+            Total number of edge types within the parsed 'graph'.
+
+        eprop_name:
+                
+    Return:
+        receivers:
+            Array of 'Fiber' objects. Each fiber contained in this array receives at least 
+            one input from the parsed pivot set.
+        input_sets:
+            Dictionary with integer indexes and value as arrays of integers. The integer
+            indexes represents the nodes of the graph, while their associated array of
+            integers represents the input set with respect to the pivot set.
+            Example: input_sets[2] => [0 2 1] -> Node 2 receives 2 input of type 2 and 
+            1 input of type 3 from the pivot set.
+"""
+function calculate_input_set(graph::Graph, pivot::Fiber, partition::Array{Fiber},
+                             number_edgetype::Int, eprop_name::String)
+    fiber_index = graph.int_vproperties["fiber_index"]
+    edgetype_prop = graph.int_eproperties[eprop_name]
+
+    receivers_classes = Int[]
+    input_sets = Dict{Int, Array{Int}}()
+
+    for pivot_v in pivot.nodes
+        out_edges = graph.vertices[pivot_v].edges_source
+        for edge in out_edges
+            target = edge.target
+            etype = edgetype_prop[edge.index]
+            push!(receivers_classes, fiber_index[target])
+            # In case 'target' is not included in the dict yet.
+            if get(input_sets, target, -1)==-1
+                input_sets[target] = [ 0 for j in 1:number_edgetype ]
+            end
+            input_sets[target][etype] += 1
+        end
+    end
+    receivers_classes = collect(Int, Set(receivers_classes))
+    receivers = Fiber[ copy_fiber(partition[j]) for j in receivers_classes ]
+    return receivers, input_sets
+end
+
+"""
+    Generate a input set stable partition with respect to the pivot set.    
 
     Given a pivot set, we select all the possible unstable classes of 
     the current 'partition' and define these classes as 'receivers',
@@ -143,38 +198,14 @@ end
 """
 function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber}, 
                            pivot_queue::Array{Fiber}, n_edgetype::Int, eprop_name="edgetype")
-    # Necessary data for the correct splitting.
+    receivers, input_sets = calculate_input_set(graph, pivot, partition, n_edgetype, eprop_name) 
+
+    # Default input set string for those who does not receive input from 'pivot'.
+    default_str = ""
+    for j in 1:n_edgetype default_str = default_str*"0" end
+
     fiber_index = graph.int_vproperties["fiber_index"]
     edgetype_prop = graph.int_eproperties[eprop_name]
-
-    # Default input-set string for those who does not have input from 'pivot'.
-    default_str = ""
-    for j in 1:n_edgetype
-        default_str = default_str*"0"
-    end
-
-    # Classes' index of the ones which receives input from 'pivot'.
-    input_classes = Int[]
-    # Input-set of the nodes with input from 'pivot'.
-    input_dict = Dict{Int, Array{Int}}()
-    # Get all nodes with input from 'pivot'. Efficient.
-    for w in pivot.nodes
-        w_out_edges = graph.vertices[w].edges_source
-        for edge in w_out_edges
-            tgt = edge.target
-            etype = edgetype_prop[edge.index]
-            push!(input_classes, fiber_index[tgt])
-            #f_index = fiber_index[tgt] 
-
-            # In case 'tgt' is not included in the dict yet.
-            if get(input_dict, tgt, -1)==-1
-                input_dict[tgt] = [ 0 for j in 1:n_edgetype ]
-            end
-            input_dict[tgt][etype] += 1
-        end
-    end
-    input_classes = collect(Int, Set(input_classes))
-    receivers = Fiber[ copy_fiber(partition[j]) for j in input_classes ]
 
     # ----------------------> SPLIT PROCEDURE <---------------------- #
     # -- go over each pivot-inputted class and split it if necessary --
@@ -182,12 +213,12 @@ function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber},
         str_input_aux = Dict{String, Array{Int}}()
         for v in r_fiber.nodes
             # if no input from 'pivot'.
-            if get(input_dict, v, -1)==-1 
+            if get(input_sets, v, -1)==-1 
                 str_input_aux[default_str] = Int[]
                 push!(str_input_aux[default_str], v)
             else # there is input from 'pivot'
                 input_str = ""
-                for j in input_dict[v]
+                for j in input_sets[v]
                     input_str = input_str*"$j"
                 end
                 if get(str_input_aux, input_str, -1)==-1
@@ -260,21 +291,38 @@ function fast_fibration(graph::Graph, eprop_name="edgetype")
         pivot_set = pop!(pivot_queue)
         fast_partitioning(graph, pivot_set, partition, pivot_queue, number_edgetype)
     end
-    return partition, pivot_queue
+    return partition
 end
 
-function count_fiber(partition::Array{Fiber}, graph::Graph)
-    # Count the number of nontrivial fibers
-    node_name = graph.string_vproperties["node_name"]
-    
-    count = []
-    nodes_in_fiber = Array{String}[]
-    for fiber in partition
-        if length(fiber.nodes)>1
-            push!(count, fiber.index)
+"""
+    Given a list of fibers, returns the count of nontrivial fibers, 
+    the total count of fibers and also a dictionary containing all
+    the nodes for each fiber.
+
+    Args:
+        partition:
+            List of 'Fiber' objects.
+    Return:
+        nontrivial_fibers:
+            Count of fibers containing more than one node.
+        total_fibers:
+            Total count of fibers, including trivial and nontrivial
+            fibers. 
+        fibers_map:
+            Dictionary where the indexes are the list index of the fiber
+            in the parsed 'partition' and the contained value is an array
+            of integers representing the nodes inside the current fiber.
+"""
+function extract_fiber_groups(partition::Array{Fiber})
+    nontrivial_fibers = 0
+    total_fibers = 0
+    fibers_map = Dict{Int, Array{Int}}()
+    for j in 1:length(partition)
+        fibers_map[j] = partition[j].nodes
+        if partition[j].number_nodes > 1
+            nontrivial_fibers += 1
         end
-        fmt_nodes = [ node_name[j] for j in fiber.nodes ]
-        append!(nodes_in_fiber, [fmt_nodes])
+        total_fibers += 1
     end
-    return length(count), length(partition), nodes_in_fiber
+    return nontrivial_fibers, total_fibers, fibers_map
 end

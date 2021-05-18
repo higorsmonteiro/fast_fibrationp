@@ -46,8 +46,9 @@ function graph_from_csv(file_path::String, is_directed::Bool)
                 label_map[unique_types[j]] = j
             end
             new_int_edgeprop = [label_map[j] for j in df.Type]
+            types = [ df.Type[j] for j in 1:length(df.Type)]
             set_edges_properties("edgetype", new_int_edgeprop, graph)
-            set_edges_properties("edgetype", df.Type, graph)
+            set_edges_properties("edgetype", types, graph)
         else
             error("Format of 'Type' column is not accepted.")
         end
