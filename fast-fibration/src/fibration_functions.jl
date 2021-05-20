@@ -158,6 +158,106 @@ function calculate_input_set(graph::Graph, pivot::Fiber, partition::Array{Fiber}
 end
 
 """
+    Given the input sets of all relevant nodes of the graph, define the
+    partitioning necessary to define the new input set stable partition.
+
+    Args:
+        receivers:
+            Array of 'Fiber' objects. Each fiber contained in this array receives at least 
+            one input from the parsed pivot set. This list is provided by another function
+            called 'calculate_input_set'.
+        input_sets:
+            Dictionary with integer indexes and value as arrays of integers. The integer
+            indexes represents the nodes of the graph, while their associated array of
+            integers represents the input set with respect to the pivot set.
+            Example: input_sets[2] => [0 2 1] -> Node 2 receives 2 input of type 2 and 
+            1 input of type 3 from the pivot set. This dictionary is provided by another 
+            function called 'calculate_input_set'.
+        number_edgetype:
+            Total number of edge types within the parsed 'graph'.
+    Return:
+        final_splitting:
+            Dictionary (key -> Integer, value -> Array of Array of Integer).
+            Each key represent an index of the 'receivers' list and it holds
+            the splitting of the fiber stored in the index. If the array of
+            arrays contains only one array it means that the class was not 
+            splitted.
+"""
+function split_from_input_set(receivers::Array{Fiber}, input_sets::Dict{Int, Array{Int}},
+                              number_edgetype::Int)
+
+    # Default input set string for those who does not receive input from 'pivot'.
+    default_str = ""
+    for j in 1:number_edgetype default_str = default_str*"0" end
+
+    final_splitting = Dict{Int, Array{Array{Int}}}()
+    
+    for j in 1:length(receivers)
+        current_fiber = receivers[j]
+        sub_input = Dict{String, Array{Int}}()
+        for node in current_fiber.nodes
+            if get(input_sets, node, -1)==-1
+                if get(sub_input, default_str, -1)==-1
+                    sub_input[default_str] = Int[]
+                end
+                push!(sub_input[default_str], node)
+            else
+                inputset_str = array2string(input_sets[node])
+                if get(sub_input, inputset_str, -1)==-1
+                    sub_input[inputset_str] = Int[]
+                end
+                push!(sub_input[inputset_str], node)
+            end
+        end
+        # At this point, each key of 'sub_input' represents a new subpartition
+        # of the original fiber. If there is only one key, then the fiber was not
+        # divided by the current pivot set.
+        final_splitting[j] = [ sub_input[key] for key in keys(sub_input) ]
+    end
+    return final_splitting
+end
+
+"""
+    Function to be used according to the outputs of 'calculate_input_set' and 'split_from_input_set'.
+    After all possible input set unstable classes are defined, all the relevant input sets are
+    calculated and the proper splitting is done, this function is responsible to define the final 
+    partitioning for a given pivot set.
+
+    The return is null, the main change is performed in the mutable 'partition' and 'pivot_queue'
+    structures.
+"""
+function define_new_partition(final_splitting::Dict{Int, Array{Array{Int}}}, receivers::Array{Fiber},
+                              partition::Array{Fiber}, pivot_queue::Array{Fiber}, graph::Graph)
+    fiber_index = graph.int_vproperties["fiber_index"]
+    
+    for j in 1:length(receivers)
+        if length(final_splitting[j])==1 continue end
+
+        current_fiber = receivers[j]
+        new_classes = Fiber[]
+        nodes_to_remove = Int[]
+        partition_fiber = partition[current_fiber.index]
+
+        # Choose the first splitted class to keep in the original fiber.
+        for arr in final_splitting[j][2:length(final_splitting[j])]
+            new_fiber = Fiber()
+            new_fiber.index = length(partition)+1
+            insert_nodes(arr, new_fiber)
+            for u in new_fiber.nodes
+                fiber_index[u] = new_fiber.index
+            end
+            push!(partition, new_fiber)
+            push!(new_classes, copy_fiber(new_fiber))
+            append!(nodes_to_remove, arr)
+        end
+        delete_nodes(nodes_to_remove, partition_fiber)
+        push!(new_classes, copy_fiber(partition_fiber))
+
+        enqueue_splitted(new_classes, pivot_queue)
+    end
+end
+
+"""
     Generate a input set stable partition with respect to the pivot set.    
 
     Given a pivot set, we select all the possible unstable classes of 
@@ -198,69 +298,13 @@ end
 """
 function fast_partitioning(graph::Graph, pivot::Fiber, partition::Array{Fiber}, 
                            pivot_queue::Array{Fiber}, n_edgetype::Int, eprop_name="edgetype")
+    # Define the input sets and the fiber receiving information from 'pivot'.
     receivers, input_sets = calculate_input_set(graph, pivot, partition, n_edgetype, eprop_name) 
-
-    # Default input set string for those who does not receive input from 'pivot'.
-    default_str = ""
-    for j in 1:n_edgetype default_str = default_str*"0" end
-
-    fiber_index = graph.int_vproperties["fiber_index"]
-    edgetype_prop = graph.int_eproperties[eprop_name]
-
-    # ----------------------> SPLIT PROCEDURE <---------------------- #
-    # -- go over each pivot-inputted class and split it if necessary --
-    for r_fiber in receivers
-        str_input_aux = Dict{String, Array{Int}}()
-        for v in r_fiber.nodes
-            # if no input from 'pivot'.
-            if get(input_sets, v, -1)==-1 
-                str_input_aux[default_str] = Int[]
-                push!(str_input_aux[default_str], v)
-            else # there is input from 'pivot'
-                input_str = ""
-                for j in input_sets[v]
-                    input_str = input_str*"$j"
-                end
-                if get(str_input_aux, input_str, -1)==-1
-                    str_input_aux[input_str] = Int[]
-                end
-                push!(str_input_aux[input_str], v)
-            end
-        end
-        
-        # -- 'str_input_aux' now represents the splitted classes for the
-        # -- current fiber 'r_fiber'. Each key of it holds the new class.
-        all_keys = collect(keys(str_input_aux))
-        # if class is stable w.r.t 'pivot', then go to the next class.
-        if length(all_keys)==1 
-            continue
-        end
-        new_classes = Fiber[]
-        nodes_to_remove = Int[]
-        cur_fiber = partition[r_fiber.index]
-        # -- choose the first key to keep the nodes --
-        for key in all_keys[2:length(all_keys)]
-            # -- create new fiber and add the nodes from the current key. --
-            new_fiber = Fiber()
-            new_fiber.index = length(partition)+1
-            insert_nodes(str_input_aux[key], new_fiber)
-            # -- Update the pointer of the nodes to their new fiber --
-            for u in new_fiber.nodes
-                fiber_index[u] = new_fiber.index
-            end
-            # -- put the new fiber in the partition --
-            push!(partition, new_fiber)
-            push!(new_classes, copy_fiber(new_fiber))
-            # -- at the same time, the nodes added to the new fiber must be 
-            # -- deleted from its original fiber.
-            append!(nodes_to_remove, str_input_aux[key])
-        end
-        delete_nodes(nodes_to_remove, cur_fiber)
-        push!(new_classes, copy_fiber(cur_fiber))
-
-        # -- Update 'pivot_queue' --
-        enqueue_splitted(new_classes, pivot_queue)
-    end
+    # After defined the 'receivers' and the proper input sets, we can calculate the
+    # proper splitting.
+    final_splitting = split_from_input_set(receivers, input_sets, n_edgetype)
+    # Define the new partitioning of the graph with respect to the pivot set.
+    define_new_partition(final_splitting, receivers, partition, pivot_queue, graph)
 end
 
 """
@@ -325,4 +369,15 @@ function extract_fiber_groups(partition::Array{Fiber})
         total_fibers += 1
     end
     return nontrivial_fibers, total_fibers, fibers_map
+end
+
+"""
+    Put it on UTILS
+"""
+function array2string(arr::Array)
+    final_str = ""
+    for j in 1:length(arr)
+        final_str = final_str*"$(arr[j])"
+    end
+    return final_str
 end
