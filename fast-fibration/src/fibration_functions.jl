@@ -370,14 +370,3 @@ function extract_fiber_groups(partition::Array{Fiber})
     end
     return nontrivial_fibers, total_fibers, fibers_map
 end
-
-"""
-    Put it on UTILS
-"""
-function array2string(arr::Array)
-    final_str = ""
-    for j in 1:length(arr)
-        final_str = final_str*"$(arr[j])"
-    end
-    return final_str
-end

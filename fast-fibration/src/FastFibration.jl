@@ -13,4 +13,5 @@ include("topology.jl")
 include("generation.jl")
 include("fibration_functions.jl")
 
+include("utils.jl")
 end
