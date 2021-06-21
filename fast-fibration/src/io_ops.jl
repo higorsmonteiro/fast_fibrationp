@@ -53,7 +53,7 @@ function graph_from_csv(file_path::String, is_directed::Bool)
             error("Format of 'Type' column is not accepted.")
         end
     else
-        set_edges_properties("edgetype", [1 for i in 1:N], graph)
+        set_edges_properties("edgetype", [1 for i in 1:graph.M], graph)
     end
     return graph
 end
