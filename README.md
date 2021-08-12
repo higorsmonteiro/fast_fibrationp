@@ -1,4 +1,4 @@
-#Fibrations symmetries on Julia
+# Fibrations symmetries on Julia
 
 Implementation in Julia for the fast fibration partitioning (FFP) algorithm on directed networks. The algorithm is presented 
 in the paper of *Monteiro et. al.* (link for the draft to be available soon). In this paper we use the codes in this repo for
@@ -29,7 +29,7 @@ For instance, let us consider the graph below where the edges can assume two pos
 
 The edgefile for this graph, called `net.csv` should follow the format below:
 
-> Source,Target,Type
+> Source,Target,Type<br/>
 > 1,2,positive<br/>
 > 2,1,positive<br/>
 > 3,1,positive<br/>
